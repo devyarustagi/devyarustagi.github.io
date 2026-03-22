@@ -1,0 +1,113 @@
+:root {
+    --bg-color: #222831;
+    --button-background-color: #393E46;
+    --button-highlight-color: #DFD0B8;
+    --button-fill-color: white;
+    --button-active-color: purple; 
+}
+
+.light {
+    --bg-color: #D6A99D ;
+    --button-background-color: #FBF3D5;
+    --button-highlight-color: black;
+    --button-fill-color: black;
+    --button-active-color: #1b8b98;
+}
+* {
+    box-sizing: border-box;
+}
+body {
+        background-color: var(--bg-color) ;
+    }
+button {
+  background: none;
+  border: 0;
+  padding:0;
+  border-radius: 8rem;
+  margin:0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#top_buttons {
+    background-color: var(--button-background-color);
+    position: absolute;
+    display: flex;
+    align-items: stretch;
+    gap: 1%;
+    border:0;
+    padding:0;
+    width: clamp(12rem,50%,50rem);
+    left: 25%;
+    top: 5%;
+    right : 25%;
+    height: 5%;
+    border-radius: 8rem;
+    border-style:none;   
+}
+
+.tools {
+    flex-grow: 1;
+}
+.tools:active {
+    background-color: var(--button-active-color);
+}
+.tools:focus {
+    outline: none;
+    box-shadow: none;
+}
+.tools svg {
+  width: 100%;
+  height: 70%;
+  stroke: var(--button-fill-color);
+  fill: none;
+  transition: stroke 0.3s ;
+}
+
+.tools:focus svg, .tools:hover svg {
+  stroke: var(--button-highlight-color); 
+  stroke-width: 3;
+}
+
+#toggle_theme {
+    position: fixed;
+    top:20px;
+    right:20px;
+    height: 6vh;
+    aspect-ratio: 1/1;
+    display: flex;
+    border-radius: 50%;
+    padding:0;
+    margin:0;
+    background-color: var(--button-background-color);
+}
+#toggle_theme:hover, #toggle_theme:focus {
+    outline:none;
+    box-shadow: none;
+}
+
+#toggle_theme:hover svg, #toggle_theme:focus svg {
+    stroke: black;
+    stroke-width: 3;
+}
+#toggle_theme svg {
+        height:80%;
+        width:100%;
+        stroke: var(--button-fill-color)
+}
+#toggle_theme svg:last-child {
+    display: none;
+}
+.light #toggle_theme svg:last-child {
+    display: block;
+}
+.light #toggle_theme svg:first-child {
+    display: none;
+}
+
+#toggle_theme:hover svg, #toggle_theme:focus svg {
+    stroke-color: var(--button-highlight-color);
+    stroke-width: 2.5;
+}
