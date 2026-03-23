@@ -18,6 +18,9 @@
 }
 body {
         background-color: var(--bg-color) ;
+        padding: 0;
+        margin: 0 0 0 0;
+        overflow: hidden;
     }
 button {
   background: none;
@@ -31,6 +34,12 @@ button {
   justify-content: center;
 }
 
+.crosshair {
+    cursor : crosshair;
+}
+.textcursor {
+    cursor : text;
+}
 #top_buttons {
     background-color: var(--button-background-color);
     position: absolute;
@@ -51,9 +60,10 @@ button {
 .tools {
     flex-grow: 1;
 }
-.tools:active {
+.selected {
     background-color: var(--button-active-color);
 }
+
 .tools:focus {
     outline: none;
     box-shadow: none;
@@ -66,7 +76,7 @@ button {
   transition: stroke 0.3s ;
 }
 
-.tools:focus svg, .tools:hover svg {
+.tools:hover svg {
   stroke: var(--button-highlight-color); 
   stroke-width: 3;
 }
@@ -83,12 +93,12 @@ button {
     margin:0;
     background-color: var(--button-background-color);
 }
-#toggle_theme:hover, #toggle_theme:focus {
+#toggle_theme:hover {
     outline:none;
     box-shadow: none;
 }
 
-#toggle_theme:hover svg, #toggle_theme:focus svg {
+#toggle_theme:hover svg {
     stroke: black;
     stroke-width: 3;
 }
@@ -107,7 +117,11 @@ button {
     display: none;
 }
 
-#toggle_theme:hover svg, #toggle_theme:focus svg {
+#toggle_theme:hover svg {
     stroke-color: var(--button-highlight-color);
     stroke-width: 2.5;
+}
+
+#paper {
+    z-index: -1;
 }
