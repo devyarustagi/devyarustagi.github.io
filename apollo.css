@@ -59,6 +59,7 @@ button {
 
 .tools {
     flex-grow: 1;
+    z-index: 1;
 }
 .selected {
     background-color: var(--button-active-color);
@@ -92,6 +93,7 @@ button {
     padding:0;
     margin:0;
     background-color: var(--button-background-color);
+    z-index: 1;
 }
 #toggle_theme:hover {
     outline:none;
@@ -120,8 +122,4 @@ button {
 #toggle_theme:hover svg {
     stroke-color: var(--button-highlight-color);
     stroke-width: 2.5;
-}
-
-#paper {
-    z-index: -1;
 }
