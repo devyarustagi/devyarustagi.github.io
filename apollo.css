@@ -7,11 +7,11 @@
 }
 
 .light {
-    --bg-color: #D6A99D ;
-    --button-background-color: #FBF3D5;
+    --bg-color: #cbcbcb ;
+    --button-background-color:#ffffe3 ;
     --button-highlight-color: black;
-    --button-fill-color: black;
-    --button-active-color: #1b8b98;
+    --button-fill-color: #4a4a4a;
+    --button-active-color:#6d8196 ;
 }
 * {
     box-sizing: border-box;
