@@ -93,18 +93,45 @@ button {
     background-color: var(--button-background-color);
     z-index:1;
 }
-
-#undo {
-    left:20px;
-    fill:none;
-    stroke: var(--button-fill-color);
-}
-#toggle_theme {
-    right:20px;
-}
 .extra_functionality:hover {
     outline:none;
     box-shadow: none;
+}
+.extra_functionality:hover svg {
+    stroke: var(--button-highlight-color);
+    stroke-width: 1.5;
+}
+.history {
+    position: fixed;
+    top:0.6875rem;
+    left:1.25rem;
+    height: 5vh;
+    aspect-ratio: 2.5/1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 1rem;
+    padding:0;
+    margin:0;
+    background-color: var(--button-background-color);
+    z-index:1;
+}
+.history button svg{
+    height:60%;
+    width:100%;
+    fill:none;
+    stroke: var(--button-fill-color);
+}
+.history button:hover {
+    outline:none;
+    box-shadow: none;
+}
+.history button:hover svg {
+    stroke: var(--button-highlight-color);
+    stroke-width: 1.5;
+}
+#toggle_theme {
+    right:20px;
 }
 
 
@@ -118,10 +145,7 @@ button {
     display: none;
 }
 
-.extra_functionality:hover svg {
-    stroke: var(--button-highlight-color);
-    stroke-width: 1.5;
-}
+
 
 #test {
     position: fixed;

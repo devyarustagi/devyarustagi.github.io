@@ -11,6 +11,7 @@ let is_drawing = false;
 let startX = 0;
 let startY = 0;
 let pencil_array = [];
+let prev_undo = false;
 let curr_tool = localStorage.getItem("curr_tool");
 let stroke_style = localStorage.getItem("stroke_style");
 console.log(localStorage.getItem("undo_stack"));
@@ -118,7 +119,10 @@ function change_style(){
 
 if(!localStorage.getItem("undo_stack")){
     localStorage.setItem("undo_stack", "[]");
-    console.log("changed",localStorage.getItem("undo_stack"));
+}
+
+if(!localStorage.getItem("redo_stack")){
+    localStorage.setItem("redo_stack", "[]");
 }
 
 if(!localStorage.getItem("stroke_width")){
@@ -226,6 +230,8 @@ canvas.addEventListener("mousedown", (event) => {
 })
 canvas.addEventListener("mousemove", (event) => {
     if (is_drawing === true) {
+        prev_undo = false;
+        localStorage.setItem("redo_stack","[]");
         if(curr_tool === "line"){
                 draw_line(event.clientX, event.clientY);
         }
@@ -265,24 +271,44 @@ document.getElementById("opacity").addEventListener("change", (event) => {
 /*-------------------------------------------------------------------------------------------------------*/
 //Undo redo logic:
 
-document.getElementById("undo").addEventListener("click", (e) =>
-{
+function undo(e){
+    prev_undo = true;
     let arr = JSON.parse(localStorage.getItem("undo_stack"));
-    arr.pop();
-    localStorage.setItem("undo_stack", JSON.stringify(arr));
-    ctx2.clearRect(0,0,canvas2.width,canvas2.height);
-    rerender();
-});
-document.addEventListener('keydown', function(event) {
-  if (event.ctrlKey && event.key === 'z') {
-    let arr = JSON.parse(localStorage.getItem("undo_stack"));
-    arr.pop();
-    localStorage.setItem("undo_stack", JSON.stringify(arr));
-    ctx2.clearRect(0,0,canvas2.width,canvas2.height);
-    rerender();
-  }
+    let arr2 = JSON.parse(localStorage.getItem("redo_stack"));
+    if(arr.length !== 0)
+    {
+        const obj = arr.pop();
+        arr2.push(obj);
+        localStorage.setItem("undo_stack", JSON.stringify(arr));
+        localStorage.setItem("redo_stack", JSON.stringify(arr2));
+        ctx2.clearRect(0,0,canvas2.width,canvas2.height);
+        rerender();
+    }
 }
-);
+
+function redo(e){
+    let arr = JSON.parse(localStorage.getItem("undo_stack"));
+    let arr2 = JSON.parse(localStorage.getItem("redo_stack"));
+    if(arr2.length !== 0){
+        const obj = arr2.pop();
+        arr.push(obj);
+        localStorage.setItem("undo_stack", JSON.stringify(arr));
+        localStorage.setItem("redo_stack", JSON.stringify(arr2));
+        canvas2draw(obj);
+    }
+}
+document.getElementById("undo").addEventListener("click", undo);
+document.addEventListener('keydown', (event) => {
+  if (event.ctrlKey && event.key === 'z'){
+    undo();
+}})
+
+document.getElementById("redo").addEventListener("click", redo);
+document.addEventListener('keydown', (event) => {
+  if (event.ctrlKey && event.key === 'y'){
+    redo();
+}})
+
 //TODO:
 //bug to be fixed later : drawing stops when pointer crosses toolbar
 //bug to be fixed later : stroke dotted appears strange with higher opacities
