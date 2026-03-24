@@ -123,8 +123,15 @@ button {
     stroke-width: 1.5;
 }
 
-#paper {
+#test {
     position: fixed;
+    background-color: transparent;
+    top:0;
+    left:0;
+}
+#final {
+    position: fixed;
+    background-color: transparent;
     top:0;
     left:0;
 }
