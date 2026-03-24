@@ -13,7 +13,7 @@ let startY = 0;
 let pencil_array = [];
 let curr_tool = localStorage.getItem("curr_tool");
 let stroke_style = localStorage.getItem("stroke_style");
-console.log(localStorage);
+console.log(localStorage.getItem("undo_stack"));
 
 //canvas2 drawing function
 function canvas2draw(object) {
@@ -51,7 +51,11 @@ function canvas2draw(object) {
         }
     }
 }
-
+function rerender(){
+    const undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
+    for(let item of undo_stack){
+    canvas2draw(item);
+}}
 //Object constructors
 function createObject(e){
     is_drawing = false;
@@ -80,9 +84,9 @@ function createObject(e){
     object.stroke_width = document.getElementById("stroke_width").value;
     object.stroke_style = stroke_style;
     canvas2draw(object);
-    let canvas_array = JSON.parse(localStorage.getItem("canvas_array"));
-    canvas_array.push(object);
-    localStorage.setItem("canvas_array", JSON.stringify(canvas_array));
+    let undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
+    undo_stack.push(object);
+    localStorage.setItem("undo_stack", JSON.stringify(undo_stack));
 }
 function Shape_obj(endX,endY){
     this.startX = startX;
@@ -90,10 +94,31 @@ function Shape_obj(endX,endY){
     this.endX = endX;
     this.endY= endY;
 }
+//function to change the cursor
+function change_cursor(){
+    canvas.classList.remove("crosshair", "textcursor");
+    if (curr_tool === "text") {
+            canvas.classList.add("textcursor");
+        }
+    else if (curr_tool !== "selection") {
+            canvas.classList.add("crosshair");
+        }
+}
+//function to change the stroke style
+function change_style(){
+    if(stroke_style === "dotted-line"){
+        ctx.setLineDash([2, 5]);
+    }
+    else{
+        ctx.setLineDash([]);
+    }
+    ctx.lineDashOffset = 0;
+}
 
 
-if(!localStorage.getItem("canvas_array")){
-    localStorage.setItem("canvas_array", "[]");
+if(!localStorage.getItem("undo_stack")){
+    localStorage.setItem("undo_stack", "[]");
+    console.log("changed",localStorage.getItem("undo_stack"));
 }
 
 if(!localStorage.getItem("stroke_width")){
@@ -124,49 +149,24 @@ document.getElementById("stroke_width").value = localStorage.getItem("stroke_wid
 document.getElementById("opacity").value = localStorage.getItem("opacity")*100;
 document.getElementById(curr_tool).classList.add("selected");
 document.getElementById(stroke_style).classList.add("selected");
-console.log(localStorage);
 
-//function to change the cursor
-function change_cursor(){
-    canvas.classList.remove("crosshair", "textcursor");
-    if (curr_tool === "text") {
-            canvas.classList.add("textcursor");
-        }
-    else if (curr_tool !== "selection") {
-            canvas.classList.add("crosshair");
-        }
-}
-//function to change the stroke style
-function change_style(){
-    if(stroke_style === "dotted-line"){
-        ctx.setLineDash([2, 5]);
-    }
-    else{
-        ctx.setLineDash([]);
-    }
-    ctx.lineDashOffset = 0;
-}
+
+
 
 change_cursor();
 change_style();
 ctx.lineWidth = JSON.parse(localStorage.getItem("stroke_width"));
 ctx.globalAlpha = JSON.parse(localStorage.getItem("opacity"));
 ctx.strokeStyle = localStorage.getItem("stroke_color");
-const canvas_array = JSON.parse(localStorage.getItem("canvas_array"));
-for(let item of canvas_array){
-    console.log(item);
-    canvas2draw(item);
-}
+rerender();
 
 const tools = document.getElementsByClassName('tools');
 for (const tool of tools) {
     tool.addEventListener("click", (event) => {
         document.getElementById(curr_tool).classList.remove("selected");
-        console.log(`class selected removed from ${curr_tool}.`);
         localStorage.setItem("curr_tool", event.currentTarget.id);
         curr_tool = localStorage.getItem("curr_tool");
         document.getElementById(curr_tool).classList.add("selected");
-        console.log(`class selected added to ${curr_tool}`);
         change_cursor();
     })}
 
@@ -174,11 +174,9 @@ const stroke_buttons = document.getElementsByClassName('stroke_button');
 for (const butt of stroke_buttons){
     butt.addEventListener("click", (event) => {
         document.getElementById(stroke_style).classList.remove("selected");
-        console.log(`class selected removed from ${stroke_style}.`);
         localStorage.setItem("stroke_style", event.currentTarget.id);
         stroke_style = localStorage.getItem("stroke_style");
         document.getElementById(stroke_style).classList.add("selected");
-        console.log(`class selected added to ${stroke_style}`);
         change_style();
     }
 )};
@@ -261,6 +259,30 @@ document.getElementById("opacity").addEventListener("change", (event) => {
     localStorage.setItem("opacity", event.currentTarget.value/100);
     ctx.globalAlpha = event.currentTarget.value/100;
 })
+
+
+
+/*-------------------------------------------------------------------------------------------------------*/
+//Undo redo logic:
+
+document.getElementById("undo").addEventListener("click", (e) =>
+{
+    let arr = JSON.parse(localStorage.getItem("undo_stack"));
+    arr.pop();
+    localStorage.setItem("undo_stack", JSON.stringify(arr));
+    ctx2.clearRect(0,0,canvas2.width,canvas2.height);
+    rerender();
+});
+document.addEventListener('keydown', function(event) {
+  if (event.ctrlKey && event.key === 'z') {
+    let arr = JSON.parse(localStorage.getItem("undo_stack"));
+    arr.pop();
+    localStorage.setItem("undo_stack", JSON.stringify(arr));
+    ctx2.clearRect(0,0,canvas2.width,canvas2.height);
+    rerender();
+  }
+}
+);
 //TODO:
 //bug to be fixed later : drawing stops when pointer crosses toolbar
 //bug to be fixed later : stroke dotted appears strange with higher opacities
