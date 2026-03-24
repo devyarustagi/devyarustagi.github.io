@@ -19,7 +19,7 @@ console.log(localStorage);
 function canvas2draw(object) {
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx2.strokeStyle = object.stroke_color;
-    ctx2.globalAlpha = JSON.parse(localStorage.getItem("opacity"));
+    ctx2.globalAlpha = object.opacity;
     ctx2.lineDashOffset = 0;
     ctx2.lineWidth = object.stroke_width;
     if(object.stroke_style === "dotted-line"){
@@ -43,10 +43,10 @@ function canvas2draw(object) {
         ctx2.strokeRect(object.startX,object.startY,object.endX-object.startX,object.endY-object.startY);
     }
     else if(object.type === "pencil"){
-        for(let i = 1; i < pencil_array.length; i++){
+        for(let i = 1; i < object.pencil_array.length; i++){
             ctx2.beginPath();
-            ctx2.moveTo(pencil_array[i-1].x, pencil_array[i-1].y);
-            ctx2.lineTo(pencil_array[i].x,pencil_array[i].y);
+            ctx2.moveTo(object.pencil_array[i-1].x, object.pencil_array[i-1].y);
+            ctx2.lineTo(object.pencil_array[i].x,object.pencil_array[i].y);
             ctx2.stroke();
         }
     }
@@ -73,12 +73,16 @@ function createObject(e){
     }
     else if(curr_tool === "pencil"){
         object.type = "pencil";
+        object.pencil_array = pencil_array;
     }
     object.stroke_color = document.getElementById("stroke_color").value;
     object.opacity = document.getElementById("opacity").value/100;
     object.stroke_width = document.getElementById("stroke_width").value;
     object.stroke_style = stroke_style;
     canvas2draw(object);
+    let canvas_array = JSON.parse(localStorage.getItem("canvas_array"));
+    canvas_array.push(object);
+    localStorage.setItem("canvas_array", JSON.stringify(canvas_array));
 }
 function Shape_obj(endX,endY){
     this.startX = startX;
@@ -88,7 +92,9 @@ function Shape_obj(endX,endY){
 }
 
 
-
+if(!localStorage.getItem("canvas_array")){
+    localStorage.setItem("canvas_array", "[]");
+}
 
 if(!localStorage.getItem("stroke_width")){
     localStorage.setItem("stroke_width", "1");
@@ -146,6 +152,11 @@ change_style();
 ctx.lineWidth = JSON.parse(localStorage.getItem("stroke_width"));
 ctx.globalAlpha = JSON.parse(localStorage.getItem("opacity"));
 ctx.strokeStyle = localStorage.getItem("stroke_color");
+const canvas_array = JSON.parse(localStorage.getItem("canvas_array"));
+for(let item of canvas_array){
+    console.log(item);
+    canvas2draw(item);
+}
 
 const tools = document.getElementsByClassName('tools');
 for (const tool of tools) {
