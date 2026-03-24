@@ -8,30 +8,35 @@ let is_drawing = false;
 let startX = 0;
 let startY = 0;
 let curr_tool = localStorage.getItem("curr_tool");
-let stroke_color = localStorage.getItem("stroke_color");
 let stroke_style = localStorage.getItem("stroke_style");
 console.log(localStorage);
 
-
+if(!localStorage.getItem("stroke_width")){
+    localStorage.setItem("stroke_width", "1");
+}
+if(!localStorage.getItem("opacity")){
+    localStorage.setItem("opacity","1");
+}
 if (!curr_tool) {
     localStorage.setItem("curr_tool", "selection");
     curr_tool = "selection";
     canvas.classList.remove("crosshair", "textcursor");
 }
-if (!stroke_color) {
+if (!localStorage.getItem("stroke_color")) {
     if(localStorage.getItem("light") === 'false')
         localStorage.setItem("stroke_color", "#f5b811");
     else {
         localStorage.setItem("stroke_color","#a60818");
     }
-    stroke_color = localStorage.getItem("stroke_color");
 }
 if (!stroke_style) {
     localStorage.setItem("stroke_style", "straight-line");
     stroke_style = "straight-line";
 }
 
-document.getElementById("stroke_color").value = stroke_color;
+document.getElementById("stroke_color").value = localStorage.getItem("stroke_color");
+document.getElementById("stroke_width").value = localStorage.getItem("stroke_width");
+document.getElementById("opacity").value = localStorage.getItem("opacity");
 document.getElementById(curr_tool).classList.add("selected");
 document.getElementById(stroke_style).classList.add("selected");
 console.log(localStorage);
@@ -59,8 +64,10 @@ function change_style(){
 
 change_cursor();
 change_style();
+ctx.lineWidth = JSON.parse(localStorage.getItem("stroke_width"));
+ctx.globalAlpha = JSON.parse(localStorage.getItem("opacity"));
+ctx.strokeStyle = localStorage.getItem("stroke_color");
 
-        
 const tools = document.getElementsByClassName('tools');
 for (const tool of tools) {
     tool.addEventListener("click", (event) => {
@@ -86,10 +93,15 @@ for (const butt of stroke_buttons){
     }
 )};
 
+document.getElementById("stroke_width").addEventListener("change", (event) => {
+        localStorage.setItem("stroke_width", JSON.stringify(event.target.value));
+        ctx.lineWidth = event.target.value;
+
+});
+
 //drawing functions :
 function draw_line(endX,endY) {
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.strokeStyle = `${stroke_color}`;
     ctx.beginPath();
     ctx.moveTo(startX,startY);
     ctx.lineTo(endX,endY);
@@ -97,20 +109,17 @@ function draw_line(endX,endY) {
 }
 function draw_rectangle(endX,endY) {
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.strokeStyle = `${stroke_color}`;
     ctx.strokeRect(startX,startY,endX-startX,endY-startY);
 }
 
 function draw_ellipse(endX, endY) {
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.strokeStyle = `${stroke_color}`;
     ctx.beginPath();
     ctx.ellipse((startX+endX)/2, (endY+startY)/2,Math.abs((endX-startX)/2),Math.abs((endY-startY)/2),0,0,2*Math.PI);
     ctx.stroke();
 }
 
 function draw_free(endX, endY) {
-    ctx.strokeStyle = `${stroke_color}`;
     ctx.beginPath();
     ctx.moveTo(startX, startY);
     ctx.lineTo(endX, endY);
@@ -152,6 +161,11 @@ canvas.addEventListener("mouseleave", (event) => {
 
 document.getElementById("stroke_color").addEventListener("change", (event) => {
     localStorage.setItem("stroke_color", event.currentTarget.value);
-    stroke_color = event.currentTarget.value;
+    ctx.strokeStyle = event.currentTarget.value;
 })
+document.getElementById("opacity").addEventListener("change", (event) => {
+    localStorage.setItem("opacity", event.currentTarget.value/100);
+    ctx.globalAlpha = event.currentTarget.value/100;
+})
+
 //bug to be fixed later : drawing stops when pointer crosses toolbar
