@@ -11,10 +11,14 @@ let is_drawing = false;
 let startX = 0;
 let startY = 0;
 let pencil_array = [];
+let in_poly_mode = false;
 let prev_undo = false;
 let curr_tool = localStorage.getItem("curr_tool");
 let stroke_style = localStorage.getItem("stroke_style");
 console.log(localStorage.getItem("undo_stack"));
+
+//-----------------------------------------------------------------------------------------
+//main funcs
 
 //canvas2 drawing function
 function canvas2draw(object) {
@@ -51,6 +55,20 @@ function canvas2draw(object) {
             ctx2.stroke();
         }
     }
+    else if(object.type === "polygon"){
+         for(let i = 1; i < object.pencil_array.length; i++){
+            ctx2.beginPath();
+            ctx2.moveTo(object.pencil_array[i-1].x, object.pencil_array[i-1].y);
+            ctx2.lineTo(object.pencil_array[i].x,object.pencil_array[i].y);
+            ctx2.stroke();
+        }
+        for(let i = 0; i < 2 ; i++){
+            ctx2.beginPath();
+            ctx2.moveTo(object.pencil_array[object.pencil_array.length-1].x, object.pencil_array[object.pencil_array.length-1].y);
+            ctx2.lineTo(object.pencil_array[0].x,object.pencil_array[0].y);
+            ctx2.stroke();
+        }
+    }
 }
 function rerender(){
     const undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
@@ -80,14 +98,18 @@ function createObject(e){
         object.type = "pencil";
         object.pencil_array = pencil_array;
     }
+    else if(curr_tool === "polygon"){
+        object.type = "polygon";
+        object.pencil_array = pencil_array;
+    }
     object.stroke_color = document.getElementById("stroke_color").value;
     object.opacity = document.getElementById("opacity").value/100;
     object.stroke_width = document.getElementById("stroke_width").value;
     object.stroke_style = stroke_style;
-    canvas2draw(object);
     let undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
     undo_stack.push(object);
     localStorage.setItem("undo_stack", JSON.stringify(undo_stack));
+        canvas2draw(object);
 }
 function Shape_obj(endX,endY){
     this.startX = startX;
@@ -109,11 +131,14 @@ function change_cursor(){
 function change_style(){
     if(stroke_style === "dotted-line"){
         ctx.setLineDash([2, 5]);
+        ctx2.setLineDash([2, 5]);
     }
     else{
         ctx.setLineDash([]);
+        ctx2.setLineDash([]);
     }
     ctx.lineDashOffset = 0;
+    ctx2.lineDashOffset = 0;
 }
 
 
@@ -188,10 +213,11 @@ for (const butt of stroke_buttons){
 document.getElementById("stroke_width").addEventListener("change", (event) => {
         localStorage.setItem("stroke_width", JSON.stringify(event.target.value));
         ctx.lineWidth = event.target.value;
+        ctx2.lineWidth = event.target.value;
 
 });
-
-//drawing functions :
+//----------------------------------------------------------------------------------------
+//live drawing functions :
 function draw_line(endX,endY) {
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.beginPath();
@@ -220,12 +246,47 @@ function draw_free(endX, endY) {
     startY = endY;
 }
 
+//-----------------------------------------------------------------------------------------
+//event listeners
 canvas.addEventListener("mousedown", (event) => {
     is_drawing = true;
     startX = event.clientX;
     startY = event.clientY;
     if(curr_tool === "pencil"){
         pencil_array = [{x: startX, y: startY}];
+    }
+})
+canvas.addEventListener("click", (event) => {    
+    if(curr_tool === "polygon"){
+        is_drawing = true;
+        startX = event.clientX;
+        startY = event.clientY;
+        if(in_poly_mode === false){
+            in_poly_mode = true;
+            pencil_array = [{x: startX, y: startY}];
+        }
+        else{
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            pencil_array.push({x: startX, y: startY});
+            ctx2.beginPath();
+            ctx2.moveTo(startX,startY);
+            ctx2.lineTo(pencil_array[pencil_array.length-2].x,pencil_array[pencil_array.length-2].y);
+            ctx2.stroke();
+        }
+    }
+})
+canvas.addEventListener("dblclick", (e) => {
+    if(curr_tool === "polygon"){
+        is_drawing = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        in_poly_mode = false;
+        pencil_array.push({x: startX, y: startY});
+        ctx.beginPath();
+        ctx.moveTo(startX,startY);
+        ctx.lineTo(pencil_array[0].x,pencil_array[0].y);
+        ctx.stroke();
+        createObject(e)
     }
 })
 canvas.addEventListener("mousemove", (event) => {
@@ -245,10 +306,17 @@ canvas.addEventListener("mousemove", (event) => {
                 pencil_array.push({x: event.clientX, y: event.clientY});
                 draw_free(event.clientX, event.clientY);
         }
+        else if(curr_tool === "polygon"){
+                draw_line(event.clientX, event.clientY);
+        }
 
     }
 })
-canvas.addEventListener("mouseup", createObject);
+canvas.addEventListener("mouseup", (e) => {
+    if(curr_tool !== "polygon"){
+        createObject(e);
+    }}
+);
 
 //to prevent glitches when mouse leaves canvas
 canvas.addEventListener("mouseleave", (e) => {
@@ -260,10 +328,12 @@ canvas.addEventListener("mouseleave", (e) => {
 document.getElementById("stroke_color").addEventListener("change", (event) => {
     localStorage.setItem("stroke_color", event.currentTarget.value);
     ctx.strokeStyle = event.currentTarget.value;
+    ctx2.strokeStyle = event.currentTarget.value;
 })
 document.getElementById("opacity").addEventListener("change", (event) => {
     localStorage.setItem("opacity", event.currentTarget.value/100);
     ctx.globalAlpha = event.currentTarget.value/100;
+    ctx2.globalAlpha = event.currentTarget.value/100;
 })
 
 
