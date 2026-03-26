@@ -6,6 +6,8 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 canvas2.width = window.innerWidth;
 canvas2.height = window.innerHeight;
+ctx.lineJoin = "round";
+ctx2.lineJoin = "round";
 
 let is_drawing = false;
 let startX = 0;
@@ -29,10 +31,16 @@ function canvas2draw(object) {
     ctx2.globalAlpha = object.opacity;
     ctx2.lineDashOffset = 0;
     ctx2.lineWidth = object.stroke_width;
-    if(object.stroke_style === "dotted-line"){
-        ctx2.setLineDash([2, 5]);
+    if(object.stroke_style === "dashed-line"){
+        ctx2.lineCap = "butt";
+        ctx2.setLineDash([2*object.stroke_width, 2*object.stroke_width]);
+    }
+    else if(object.stroke_style === "dotted-line"){
+        ctx2.lineCap = "round";
+        ctx2.setLineDash([0,3*object.stroke_width]);
     }
     else{
+        ctx2.lineCap = "round";
         ctx2.setLineDash([]);
     }
     if(object.type === "line"){
@@ -149,11 +157,22 @@ function change_cursor(){
 
 //function to change the stroke style
 function change_style(){
-    if(stroke_style === "dotted-line"){
-        ctx.setLineDash([2, 5]);
-        ctx2.setLineDash([2, 5]);
+    const stroke_width = JSON.parse(localStorage.getItem("stroke_width"));
+    if(stroke_style === "dashed-line"){
+        ctx.lineCap = "butt";
+        ctx2.lineCap = "butt";
+        ctx.setLineDash([2*stroke_width, 2*stroke_width]);
+        ctx2.setLineDash([2*stroke_width, 2*stroke_width]);
+    }
+    else if(stroke_style === "dotted-line"){
+        ctx.lineCap = "round";
+        ctx2.lineCap = "round";
+        ctx.setLineDash([0,3*stroke_width]);
+        ctx2.setLineDash([0,3*stroke_width]);
     }
     else{
+        ctx.lineCap = "round";
+        ctx2.lineCap = "round";
         ctx.setLineDash([]);
         ctx2.setLineDash([]);
     }
@@ -288,6 +307,7 @@ document.getElementById("stroke_width").addEventListener("change", (event) => {
         localStorage.setItem("stroke_width", JSON.stringify(event.target.value));
         ctx.lineWidth = event.target.value;
         ctx2.lineWidth = event.target.value;
+        change_style();
 
 });
 document.getElementById("font_color").addEventListener("change", (e) => {
