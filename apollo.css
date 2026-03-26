@@ -160,7 +160,7 @@ button {
     left:0;
 }
 
-#stroke_manipulation{
+.beautifiers{
     border:0;
     margin:0;
     padding:1rem 1rem 1rem 1rem;
@@ -177,33 +177,33 @@ button {
     gap: 0.7rem;
     left:0rem;
 }
-#stroke_manipulation pre{
+.beautifiers pre{
     margin:0;
     font-size:1rem;
     color: var(--button-fill-color);
 }
-#stroke_manipulation input{
+.beautifiers input{
     padding: 0;
     margin:0;
     border : none;
 }
-#stroke_manipulation input:hover{
+.beautifiers input:hover{
     cursor: pointer;
 }
-#stroke_manipulation div{
+.beautifiers div{
    display: inline-flex;
    align-items: center;
    justify-content: center;
    gap:1rem;
 }
-#stroke_manipulation div button{
+.beautifiers div button{
    width:3rem;
 }
-#stroke_manipulation div button:hover svg{
+.beautifiers div button:hover svg{
    stroke: var(--button-highlight-color);
    stroke-width: 2.70;
 }
-#stroke_manipulation div button svg{
+.beautifiers div button svg{
    stroke: var(--button-fill-color);
    height: 80%;
    width:100%;

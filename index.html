@@ -40,7 +40,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/></svg>
     </button>
     </div>
-    <menu id="stroke_manipulation">
+    <menu id="stroke_manipulation" class="beautifiers">
       <pre>Stroke color:</pre>
       <input type="color" id="stroke_color">
       <!--implement default color and local storage-->
@@ -53,6 +53,20 @@
       <input type="range" id="stroke_width" min="1" max="20">
       <pre>Opacity:</pre>
       <input type="range" id="opacity" min="0" max="100">
+    </menu>
+    <menu id="font_manipulation" class="beautifiers">
+      <pre>Text color:</pre>
+      <input type="color" id="font_color">
+      <pre>Font family:</pre>
+      <select id="font_family">
+        <option>Arial</option>
+        <option>Consolas</option>
+        <option>Helvetica</option>
+        <option>Verdana</option>
+        <option>Garamond</option>
+        <option>Tahoma</option>
+        <option>Impact</option>
+      </select>
     </menu>
     
     

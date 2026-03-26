@@ -117,6 +117,23 @@ function Shape_obj(endX,endY){
     this.endX = endX;
     this.endY= endY;
 }
+
+//function to switch between font toolbar and shapes toolbar
+function change_toolbar(s){
+    if(s === "font"){
+        document.getElementById("font_manipulation").style.display = "flex";
+        document.getElementById("stroke_manipulation").style.display = "none";
+    }
+    else if(s === "stroke"){
+        document.getElementById("font_manipulation").style.display = "none";
+        document.getElementById("stroke_manipulation").style.display = "flex";
+    }
+    else if(s === "selection"){
+        document.getElementById("font_manipulation").style.display = "none";
+        document.getElementById("stroke_manipulation").style.display = "none";
+    }
+}
+
 //function to change the cursor
 function change_cursor(){
     canvas.classList.remove("crosshair", "textcursor");
@@ -127,6 +144,7 @@ function change_cursor(){
             canvas.classList.add("crosshair");
         }
 }
+
 //function to change the stroke style
 function change_style(){
     if(stroke_style === "dotted-line"){
@@ -140,8 +158,17 @@ function change_style(){
     ctx.lineDashOffset = 0;
     ctx2.lineDashOffset = 0;
 }
-
-
+//------------------------------Initializers-----------------------------------------------
+if(!localStorage.getItem("font_color")){
+    localStorage.setItem("font_color","#226e08");
+}
+if(!localStorage.getItem("font_family")){
+    localStorage.setItem("font_family","Arial");
+}
+if(!localStorage.getItem("toolbar")){
+    localStorage.setItem("toolbar","selection");
+    change_toolbar("selection");
+}
 if(!localStorage.getItem("undo_stack")){
     localStorage.setItem("undo_stack", "[]");
 }
@@ -173,25 +200,42 @@ if (!stroke_style) {
     stroke_style = "straight-line";
 }
 
+document.getElementById("font_color").value = localStorage.getItem("font_color");
+document.getElementById("font_family").value = localStorage.getItem("font_family");
 document.getElementById("stroke_color").value = localStorage.getItem("stroke_color");
 document.getElementById("stroke_width").value = localStorage.getItem("stroke_width");
 document.getElementById("opacity").value = localStorage.getItem("opacity")*100;
 document.getElementById(curr_tool).classList.add("selected");
 document.getElementById(stroke_style).classList.add("selected");
 
-
-
-
+change_toolbar(localStorage.getItem("toolbar"))
 change_cursor();
 change_style();
 ctx.lineWidth = JSON.parse(localStorage.getItem("stroke_width"));
 ctx.globalAlpha = JSON.parse(localStorage.getItem("opacity"));
 ctx.strokeStyle = localStorage.getItem("stroke_color");
+change_style();
+ctx2.lineWidth = JSON.parse(localStorage.getItem("stroke_width"));
+ctx2.globalAlpha = JSON.parse(localStorage.getItem("opacity"));
+ctx2.strokeStyle = localStorage.getItem("stroke_color");
 rerender();
 
 const tools = document.getElementsByClassName('tools');
 for (const tool of tools) {
     tool.addEventListener("click", (event) => {
+        if(tool.id === "text"){
+            change_toolbar("font");
+            localStorage.setItem("toolbar", "font")
+        }
+        else if(tool.id === "selection"){
+            change_toolbar("selection");
+            localStorage.setItem("toolbar","selection");
+        }
+        else
+        {
+            change_toolbar("stroke");
+            localStorage.setItem("toolbar","stroke");
+        }
         document.getElementById(curr_tool).classList.remove("selected");
         localStorage.setItem("curr_tool", event.currentTarget.id);
         curr_tool = localStorage.getItem("curr_tool");
@@ -209,7 +253,6 @@ for (const butt of stroke_buttons){
         change_style();
     }
 )};
-
 document.getElementById("stroke_width").addEventListener("change", (event) => {
         localStorage.setItem("stroke_width", JSON.stringify(event.target.value));
         ctx.lineWidth = event.target.value;
@@ -277,7 +320,6 @@ canvas.addEventListener("click", (event) => {
 })
 canvas.addEventListener("dblclick", (e) => {
     if(curr_tool === "polygon"){
-        is_drawing = true;
         startX = e.clientX;
         startY = e.clientY;
         in_poly_mode = false;
@@ -320,6 +362,7 @@ canvas.addEventListener("mouseup", (e) => {
 
 //to prevent glitches when mouse leaves canvas
 canvas.addEventListener("mouseleave", (e) => {
+    in_poly_mode = false;
     if(is_drawing === true){
         createObject(e);
     }
