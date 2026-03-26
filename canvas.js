@@ -15,6 +15,8 @@ let in_poly_mode = false;
 let prev_undo = false;
 let curr_tool = localStorage.getItem("curr_tool");
 let stroke_style = localStorage.getItem("stroke_style");
+let text_box = 0;
+let mouse_downed_text = 0;
 console.log(localStorage.getItem("undo_stack"));
 
 //-----------------------------------------------------------------------------------------
@@ -158,9 +160,38 @@ function change_style(){
     ctx.lineDashOffset = 0;
     ctx2.lineDashOffset = 0;
 }
+
+function add_element(s,startX,startY,endX,endY){
+    if(s === "text"){
+        const input = document.createElement("textarea");
+        input.style.position = "absolute";
+        input.id = "textbox";
+        input.style.resize = "none";
+        input.style.top = `${Math.min(startY,endY)}px`;
+        input.style.left = `${Math.min(startX,endX)}px`;
+        input.style.color = `${localStorage.getItem("font_color")}`;
+        input.style.fontFamily = `${localStorage.getItem("font_family")}`;
+        input.style.backgroundColor = "transparent";
+        input.style.overflow = "none";
+        input.style.height = `${Math.abs(startY-endY)}px`;
+        input.style.width = `${Math.abs(startX-endX)}px`;
+        document.body.appendChild(input);
+        input.addEventListener("input",(e)=>{
+            input.style.height = `${Math.abs(startY-endY)}px`;
+            input.style.height = `${input.scrollHeight}px`;
+        })
+        input.focus();
+        input.addEventListener("mousedown",(e)=>{e.stopPropagation()},true);
+    }
+}
+
+
 //------------------------------Initializers-----------------------------------------------
 if(!localStorage.getItem("font_color")){
     localStorage.setItem("font_color","#226e08");
+}
+if(!localStorage.getItem("font_size")){
+    localStorage.setItem("font_size","1rem");
 }
 if(!localStorage.getItem("font_family")){
     localStorage.setItem("font_family","Arial");
@@ -259,6 +290,12 @@ document.getElementById("stroke_width").addEventListener("change", (event) => {
         ctx2.lineWidth = event.target.value;
 
 });
+document.getElementById("font_color").addEventListener("change", (e) => {
+        localStorage.setItem("font_color",e.currentTarget.value);
+});
+document.getElementById("font_family").addEventListener("change", (e) => {
+        localStorage.setItem("font_family", e.currentTarget.value);
+});
 //----------------------------------------------------------------------------------------
 //live drawing functions :
 function draw_line(endX,endY) {
@@ -298,7 +335,24 @@ canvas.addEventListener("mousedown", (event) => {
     if(curr_tool === "pencil"){
         pencil_array = [{x: startX, y: startY}];
     }
+    else if(curr_tool === "text"){
+        if(text_box === 0){
+            mouse_downed_text = 1;
+            ctx.lineWidth = 1;
+            if(localStorage.getItem('light') === 'true'){
+                ctx.strokeStyle = "black";
+            }
+            else{
+                ctx.strokeStyle = "white";
+            }
+        }
+    }
 })
+document.body.addEventListener("mousedown" , (e) => {
+    if(curr_tool === "text" && text_box === 1){
+        //create ctx2 text
+    }
+},false)
 canvas.addEventListener("click", (event) => {    
     if(curr_tool === "polygon"){
         is_drawing = true;
@@ -351,13 +405,30 @@ canvas.addEventListener("mousemove", (event) => {
         else if(curr_tool === "polygon"){
                 draw_line(event.clientX, event.clientY);
         }
+        else if(curr_tool === "text"){
+                if(text_box === 0 && mouse_downed_text === 1){
+                    draw_rectangle(event.clientX, event.clientY);
+                }
+        }
 
     }
 })
 canvas.addEventListener("mouseup", (e) => {
-    if(curr_tool !== "polygon"){
+    if(curr_tool === "text" && text_box === 0){
+        ctx.lineWidth = localStorage.getItem("stroke_width");
+        ctx.strokeStyle = localStorage.getItem("stroke_color");
+        add_element("text",startX,startY,e.clientX,e.clientY);
+        is_drawing = false;
+        text_box = 1;
+        mouse_downed_text = 0;
+    }
+    else if(curr_tool === "text" && text_box === 1){
+        text_box = 0;
+    }
+    else if(curr_tool !== "polygon"){
         createObject(e);
     }}
+    
 );
 
 //to prevent glitches when mouse leaves canvas
@@ -422,6 +493,22 @@ document.addEventListener('keydown', (event) => {
     redo();
 }})
 
+//-----------------------------------------------------------------------------------------
+//Interactive sliders:
+document.getElementById("font_size_value").textContent = `${parseFloat(getComputedStyle(document.documentElement).fontSize)*document.getElementById("font_size").value}px`;
+document.getElementById("font_size").addEventListener("input", (event) => {
+document.getElementById("font_size_value").textContent = `${parseFloat(getComputedStyle(document.documentElement).fontSize)*event.currentTarget.value}px`;
+});
+
+document.getElementById("opacity_value").textContent = `${document.getElementById("opacity").value/100}`;
+document.getElementById("opacity").addEventListener("input", (event) => {
+document.getElementById("opacity_value").textContent = `${event.currentTarget.value/100}`;
+});
+
+document.getElementById("stroke_width_value").textContent = `${document.getElementById("stroke_width").value}px`;
+document.getElementById("stroke_width").addEventListener("input", (event) => {
+document.getElementById("stroke_width_value").textContent = `${event.currentTarget.value}px`;
+});
 //TODO:
 //bug to be fixed later : drawing stops when pointer crosses toolbar
 //bug to be fixed later : stroke dotted appears strange with higher opacities

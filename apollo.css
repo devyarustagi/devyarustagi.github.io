@@ -209,4 +209,7 @@ button {
    width:100%;
    fill:none;
 }
+output{
+    color: var(--button-fill-color);
+}
 

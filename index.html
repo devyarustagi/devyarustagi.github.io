@@ -50,9 +50,9 @@
         <button id="dotted-line" type="button" class="stroke_button"><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
       </div>
       <pre>Stroke width:</pre>
-      <input type="range" id="stroke_width" min="1" max="20">
+      <div><input type="range" id="stroke_width" min="1" max="20" step="1"><span> </span><output id = "stroke_width_value" min_width="20px"></output></div>
       <pre>Opacity:</pre>
-      <input type="range" id="opacity" min="0" max="100">
+      <div><input type="range" id="opacity" min="0" max="100" step="1"><span> </span><output min-width = "20px" id = "opacity_value"></output></div>
     </menu>
     <menu id="font_manipulation" class="beautifiers">
       <pre>Text color:</pre>
@@ -67,6 +67,8 @@
         <option>Tahoma</option>
         <option>Impact</option>
       </select>
+      <pre>Font size:</pre>
+      <div><input type="range" id="font_size" min="0.5" max="6" step="0.0625"><span> </span><output min-width = "20px" id = "font_size_value"></output></div>
     </menu>
     
     
