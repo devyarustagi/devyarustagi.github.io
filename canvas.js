@@ -79,6 +79,12 @@ function canvas2draw(object) {
             ctx2.stroke();
         }
     }
+    else if(object.type === "text"){
+        ctx2.textBaseline = "top";
+        ctx2.font = `${object.font_size} ${object.font_family}`;
+        ctx2.fillStyle = object.font_color;
+        ctx2.fillText(`${object.text}`,object.left,object.top);
+    }
 }
 function rerender(){
     const undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
@@ -112,6 +118,17 @@ function createObject(e){
         object.type = "polygon";
         object.pencil_array = pencil_array;
     }
+    else if(curr_tool === "text"){
+        object.type = "text";
+        object.font_family = document.getElementById("font_family").value;
+        object.font_size = `${document.getElementById("font_size").value}px`;
+        object.font_color = document.getElementById("font_color").value;
+        const tb = document.getElementById("textbox");
+        object.text = tb.value;
+        object.top = parseFloat(tb.style.top);
+        object.left = parseFloat(tb.style.left);
+        document.body.removeChild(tb);
+    }
     object.stroke_color = document.getElementById("stroke_color").value;
     object.opacity = document.getElementById("opacity").value/100;
     object.stroke_width = document.getElementById("stroke_width").value;
@@ -119,7 +136,7 @@ function createObject(e){
     let undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
     undo_stack.push(object);
     localStorage.setItem("undo_stack", JSON.stringify(undo_stack));
-        canvas2draw(object);
+    canvas2draw(object);
 }
 function Shape_obj(endX,endY){
     this.startX = startX;
@@ -186,18 +203,20 @@ function add_element(s,startX,startY,endX,endY){
         input.style.position = "absolute";
         input.id = "textbox";
         input.style.resize = "none";
+        input.wrap = "off";
         input.style.top = `${Math.min(startY,endY)}px`;
         input.style.left = `${Math.min(startX,endX)}px`;
         input.style.color = `${localStorage.getItem("font_color")}`;
         input.style.fontFamily = `${localStorage.getItem("font_family")}`;
+        input.style.fontSize = `${document.getElementById("font_size").value}px`
         input.style.backgroundColor = "transparent";
-        input.style.overflow = "none";
+        input.style.overflow = "hidden";
         input.style.height = `${Math.abs(startY-endY)}px`;
         input.style.width = `${Math.abs(startX-endX)}px`;
         document.body.appendChild(input);
         input.addEventListener("input",(e)=>{
-            input.style.height = `${Math.abs(startY-endY)}px`;
-            input.style.height = `${input.scrollHeight}px`;
+            input.style.width = `${Math.abs(startX-endX)}px`;
+            input.style.width = `${input.scrollWidth}px`;
         })
         input.focus();
         input.addEventListener("mousedown",(e)=>{e.stopPropagation()},true);
@@ -210,7 +229,7 @@ if(!localStorage.getItem("font_color")){
     localStorage.setItem("font_color","#226e08");
 }
 if(!localStorage.getItem("font_size")){
-    localStorage.setItem("font_size","1rem");
+    localStorage.setItem("font_size",'16');
 }
 if(!localStorage.getItem("font_family")){
     localStorage.setItem("font_family","Arial");
@@ -250,6 +269,7 @@ if (!stroke_style) {
     stroke_style = "straight-line";
 }
 
+document.getElementById("font_size").value = localStorage.getItem("font_size");
 document.getElementById("font_color").value = localStorage.getItem("font_color");
 document.getElementById("font_family").value = localStorage.getItem("font_family");
 document.getElementById("stroke_color").value = localStorage.getItem("stroke_color");
@@ -316,6 +336,9 @@ document.getElementById("font_color").addEventListener("change", (e) => {
 document.getElementById("font_family").addEventListener("change", (e) => {
         localStorage.setItem("font_family", e.currentTarget.value);
 });
+document.getElementById("font_size").addEventListener("change", (e) => {
+        localStorage.setItem("font_size", e.currentTarget.value);
+});
 //----------------------------------------------------------------------------------------
 //live drawing functions :
 function draw_line(endX,endY) {
@@ -370,7 +393,9 @@ canvas.addEventListener("mousedown", (event) => {
 })
 document.body.addEventListener("mousedown" , (e) => {
     if(curr_tool === "text" && text_box === 1){
-        //create ctx2 text
+        if(document.getElementById("textbox").value !== null){createObject(e);}
+        else{document.body.removeChild(document.getElementById("textbox"));
+        }
     }
 },false)
 canvas.addEventListener("click", (event) => {    
@@ -515,9 +540,9 @@ document.addEventListener('keydown', (event) => {
 
 //-----------------------------------------------------------------------------------------
 //Interactive sliders:
-document.getElementById("font_size_value").textContent = `${parseFloat(getComputedStyle(document.documentElement).fontSize)*document.getElementById("font_size").value}px`;
+document.getElementById("font_size_value").textContent = `${document.getElementById("font_size").value}px`;
 document.getElementById("font_size").addEventListener("input", (event) => {
-document.getElementById("font_size_value").textContent = `${parseFloat(getComputedStyle(document.documentElement).fontSize)*event.currentTarget.value}px`;
+document.getElementById("font_size_value").textContent = `${event.currentTarget.value}px`;
 });
 
 document.getElementById("opacity_value").textContent = `${document.getElementById("opacity").value/100}`;
