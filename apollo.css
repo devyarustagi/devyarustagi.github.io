@@ -7,8 +7,7 @@
 }
 
 .light {
-    --bg-color: #cbcbcb ;
-    --button-background-color:#ffffe3 ;
+    --button-background-color:#DFD0B8;
     --button-highlight-color: black;
     --button-fill-color: #4a4a4a;
     --button-active-color:#6d8196 ;
@@ -49,11 +48,12 @@ button {
     display: flex;
     align-items: stretch;
     gap: 1%;
+    margin: 0 0 0 0;
     border:0;
     padding:0;
     width: clamp(12rem,50%,50rem);
     left: 25%;
-    top: 0rem;
+    top: 2vh;
     right : 25%;
     height: 5%;
     border-radius: 8rem;
@@ -85,8 +85,6 @@ button {
 }
 
 .extra_functionality {
-    position: fixed;
-    top:0.6875rem;
     height: 6vh;
     aspect-ratio: 1/1;
     display: flex;
@@ -106,8 +104,8 @@ button {
 }
 .history {
     position: fixed;
-    top:0.6875rem;
-    left:1.25rem;
+    top:2vh;
+    left:2vw;
     height: 5vh;
     aspect-ratio: 2.5/1;
     display: flex;
@@ -133,10 +131,41 @@ button {
     stroke: var(--button-highlight-color);
     stroke-width: 1.5;
 }
+#theme {
+    position: fixed;
+    right:1vw;
+    top:1vw;
+    height: 5vh;
+    display:flex;
+    gap:1vw;
+    background-color: var(--button-background-color);
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding:0 1vw;
+    margin:0 0;
+    border-radius: 4rem;
+}
 #toggle_theme {
-    right:20px;
+    height: 100%;
+    aspect-ratio: 1/1;
+    display: flex;
+    border-radius: 50%;
+    padding:0;
+    margin:0;
+    background-color: transparent;
+    z-index:1;
+}
+#canvas_color{
+    height:3.5vh;
+    border:none;
+    cursor:pointer;
+    background-color: transparent;
 }
 
+#toggle_theme svg:hover{
+    stroke: var(--button-highlight-color)
+}
 
 #toggle_theme svg:last-child {
     display: none;
@@ -147,8 +176,6 @@ button {
 .light #toggle_theme svg:first-child {
     display: none;
 }
-
-
 
 #test {
     position: fixed;
@@ -174,7 +201,7 @@ button {
     background-color: var(--button-background-color);
     border-radius: 1rem;
     position: fixed;
-    top: 20%;
+    top: 20vh;
     height:auto;
     max-height: 70vh;
     gap: 0.7rem;

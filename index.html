@@ -23,13 +23,14 @@
     <button id="eraser" type="button" class="tools"><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 24 24" stroke-width="1" stroke-linecap="butt" stroke-linejoin="round"><path d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21"/><path d="m5.082 11.09 8.828 8.828"/></svg></button>
     <button id="text" type="button" class="tools"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"  stroke-width="1" stroke-linecap="butt" stroke-linejoin="round" ><path d="M17 22h-1a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4h1"/><path d="M7 22h1a4 4 0 0 0 4-4v-1"/><path d="M7 2h1a4 4 0 0 1 4 4v1"/></svg></button>
     <button id="selection" type="button" class="tools"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1" stroke-linecap="butt" stroke-linejoin="round" ><path d="M12.586 12.586 19 19"/><path d="M3.688 3.037a.497.497 0 0 0-.651.651l6.5 15.999a.501.501 0 0 0 .947-.062l1.569-6.083a2 2 0 0 1 1.448-1.479l6.124-1.579a.5.5 0 0 0 .063-.947z"/></svg></button>
-    
     </menu>
-    <!--theme toggle button-->
-    <button id="toggle_theme" class="extra_functionality" type="button">
+    <div id="theme">
+    <span><input type = "color" id = "canvas_color"></span>
+    <button id="toggle_theme" type="button">
       <svg xmlns="http://www.w3.org/2000/svg" id= "moon" viewBox="0 0 24 24" fill="white" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
       <svg xmlns="http://www.w3.org/2000/svg" id="sun" viewBox="0 0 24 24" fill="orange" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg> 
     </button>
+  </div>
 
     <div id="undo_redo" class="history">
     <button id="undo"  type="button">
