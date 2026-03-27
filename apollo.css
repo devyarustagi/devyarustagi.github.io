@@ -40,6 +40,9 @@ button {
 .textcursor {
     cursor : text;
 }
+.grabbing {
+    cursor : grabbing;
+}
 #top_buttons {
     background-color: var(--button-background-color);
     position: fixed;

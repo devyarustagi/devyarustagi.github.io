@@ -21,9 +21,25 @@ let text_box = 0;
 let mouse_downed_text = 0;
 console.log(localStorage.getItem("undo_stack"));
 let state_array = [];
-
+let move_mode = 0;
+let selected_index = -1;
+//mousedown -> draw dotted lines
 //-----------------------------------------------------------------------------------------
 //main funcs
+//select func:
+function select(event){
+    const x = event.clientX;
+    const y = event.clientY;
+    for(let i = state_array.length - 1 ; i >= 0 ; i--){
+        if(ctx2.isPointInPath(state_array[i],x,y) || ctx2.isPointInStroke(state_array[i],x,y)){
+            selected_index = i;
+            canvas.classList.add("grabbing");
+            return;
+        }
+    }
+    selected_index = -1;
+    canvas.classList.remove("grabbing");
+}
 //convert to path2d:
 function convert_to_path2d(object){
     let path = new Path2D();
@@ -194,11 +210,8 @@ function change_toolbar(s){
 
 //function to change the cursor
 function change_cursor(){
-    canvas.classList.remove("crosshair", "textcursor");
-    if (curr_tool === "text") {
-            canvas.classList.add("textcursor");
-        }
-    else if (curr_tool !== "selection") {
+    canvas.classList.remove("crosshair", "textcursor", "grabbing");
+    if (curr_tool !== "selection") {
             canvas.classList.add("crosshair");
         }
 }
@@ -414,7 +427,98 @@ function draw_free(endX, endY) {
     startX = endX;
     startY = endY;
 }
+function draw_box_outline(object){
+        const dir_x = (object.startX - object.endX)/Math.abs(object.startX - object.endX);
+        const dir_y = (object.startY - object.endY)/Math.abs(object.startY - object.endY);
+        object.startX = object.startX + 15*dir_x;
+        object.startY = object.startY + 15*dir_y;
+        object.endX = object.endX - 15*dir_x;
+        object.endY = object.endY - 15*dir_y;
+        ctx.beginPath();
+        ctx.moveTo(object.startX,object.startY);
+        ctx.arc(object.startX,object.startY,5,0,2*Math.PI);
+        ctx.moveTo(object.endX,object.startY);
+        ctx.arc(object.endX,object.startY,5,0,2*Math.PI);
+        ctx.moveTo(object.endX,object.endY);
+        ctx.arc(object.endX,object.endY,5,0,2*Math.PI);
+        ctx.moveTo(object.startX,object.endY);
+        ctx.arc(object.startX,object.endY,5,0,2*Math.PI);
+        ctx.fill();
+        ctx.moveTo(object.startX,object.startY);
+        ctx.lineTo(object.endX,object.startY);
+        ctx.lineTo(object.endX,object.endY);
+        ctx.lineTo(object.startX,object.endY);
+        ctx.lineTo(object.startX,object.startY);
+        ctx.stroke()
+}
+function draw_outline(object){
+    ctx.lineWidth = "2";
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#16a7f5"
+    ctx.fillStyle = "#16a7f5"
+    ctx.globalAlpha = "1";
+    ctx.setLineDash([]);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(object.type === "line"){
+       ctx.beginPath(); 
+       ctx.moveTo(object.startX,object.startY);
+       ctx.arc(object.startX,object.startY,5,0,2*Math.PI);
+       ctx.moveTo((object.startX + object.endX)/2,(object.startY + object.endY)/2);
+       ctx.arc((object.endX + object.startX)/2,(object.endY + object.startY)/2,5,0,2*Math.PI);
+       ctx.moveTo(object.endX,object.endY);
+       ctx.arc(object.endX,object.endY,5,0,2*Math.PI);
+       ctx.fill();
+    }
+    else if(object.type === "rectangle" || object.type === "circle" || object.type === "text"){
+        draw_box_outline(object);
+    }
+    else if(object.type === "pencil" || object.type === "polygon"){
+        let max_x = object.pencil_array[0].x;
+        let min_x = object.pencil_array[0].x;
+        let max_y = object.pencil_array[0].y;
+        let min_y = object.pencil_array[0].y;
+        for(let i = 1 ; i < object.pencil_array.length; i++){
+            max_x = Math.max(object.pencil_array[i].x,max_x);
+            max_y = Math.max(object.pencil_array[i].y,max_y);
+            min_x = Math.min(object.pencil_array[i].x,min_x);
+            min_y = Math.min(object.pencil_array[i].y,min_y);
+        }
+        object.startX = min_x;
+        object.endX = max_x;
+        object.startY = min_y;
+        object.endY = max_y;
+        draw_box_outline(object);
+    }
 
+    change_style();
+    ctx.lineWidth = document.getElementById("stroke_width").value;
+    ctx.globalAlpha = document.getElementById("opacity").value/100;
+    ctx.strokeStyle = document.getElementById("stroke_color").value;
+}
+
+function move(disp_x,disp_y){
+    let arr = JSON.parse(localStorage.getItem("undo_stack"));
+    let object = arr[selected_index];
+    if(object.type === "pencil" || object.type === "polygon"){
+        for(let i = 0 ; i < object.pencil_array.length ; i++){
+            object.pencil_array[i].x += disp_x;
+            object.pencil_array[i].y += disp_y;
+        }
+    }
+    else{
+        object.startX += disp_x;
+        object.endX += disp_x;
+        object.endY += disp_y;
+        object.startY += disp_y;
+    }
+    arr[selected_index] = object;
+    state_array[selected_index] = convert_to_path2d(object);
+    ctx2.clearRect(0,0,canvas2.width,canvas2.height);
+    localStorage.setItem("undo_stack",JSON.stringify(arr));
+    rerender();
+    draw_outline(object);
+}
 //-----------------------------------------------------------------------------------------
 //event listeners
 canvas.addEventListener("mousedown", (event) => {
@@ -423,6 +527,17 @@ canvas.addEventListener("mousedown", (event) => {
     startY = event.clientY;
     if(curr_tool === "pencil"){
         pencil_array = [{x: startX, y: startY}];
+    }
+    else if(curr_tool === "selection"){
+        if(selected_index !== -1){
+            move_mode = 1;
+            startX = event.clientX;
+            startY = event.clientY;
+            draw_outline(JSON.parse(localStorage.getItem("undo_stack"))[selected_index]);
+        }
+        else{
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+        }
     }
     else if(curr_tool === "text"){
         if(text_box === 0){
@@ -504,6 +619,17 @@ canvas.addEventListener("mousemove", (event) => {
         else if(curr_tool === "eraser"){
                 erase(event.clientX,event.clientY);
         }
+        
+        }
+    if(curr_tool === "selection"){
+                if(move_mode === 0){
+                    select(event);
+                }
+                else{
+                    move(event.clientX - startX,event.clientY - startY);
+                    startX = event.clientX;
+                    startY = event.clientY;
+                }
 
     }
 })
@@ -519,15 +645,20 @@ canvas.addEventListener("mouseup", (e) => {
     else if(curr_tool === "text" && text_box === 1){
         text_box = 0;
     }
+    else if(curr_tool === "selection"){
+        move_mode = 0;
+    }
     else if(curr_tool !== "polygon"){
         createObject(e);
-    }}
+    }
     
-);
+    
+});
 
 //to prevent glitches when mouse leaves canvas
 canvas.addEventListener("mouseleave", (e) => {
     in_poly_mode = false;
+    move_mode = 0;
     if(is_drawing === true){
         createObject(e);
     }
