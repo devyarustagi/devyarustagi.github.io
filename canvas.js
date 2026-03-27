@@ -20,10 +20,35 @@ let stroke_style = localStorage.getItem("stroke_style");
 let text_box = 0;
 let mouse_downed_text = 0;
 console.log(localStorage.getItem("undo_stack"));
+let state_array = [];
 
 //-----------------------------------------------------------------------------------------
 //main funcs
-
+//convert to path2d:
+function convert_to_path2d(object){
+    let path = new Path2D();
+    if(object.type === "line"){
+        path.moveTo(object.startX,object.startY);
+        path.lineTo(object.endX,object.endY);
+    }
+    else if(object.type === "rectangle" || object.type === "text"){
+        path.rect(object.startX,object.startY,object.endX-object.startX,object.endY-object.startY);
+    }
+    else if(object.type === "circle"){
+        path.ellipse((object.startX+object.endX)/2, (object.endY+object.startY)/2,Math.abs((object.endX-object.startX)/2),Math.abs((object.endY-object.startY)/2),0,0,2*Math.PI)
+    }
+    else if(object.type === "pencil" || object.type === "polygon")
+    {
+        for(let i = 1; i < object.pencil_array.length; i++){
+            path.moveTo(object.pencil_array[i-1].x, object.pencil_array[i-1].y);
+            path.lineTo(object.pencil_array[i].x,object.pencil_array[i].y);
+        }
+        if(object.type === "polygon"){
+            path.closePath();
+        }
+    }
+    return path;
+}
 //canvas2 drawing function
 function canvas2draw(object) {
     ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -83,7 +108,7 @@ function canvas2draw(object) {
         ctx2.textBaseline = "top";
         ctx2.font = `${object.font_size} ${object.font_family}`;
         ctx2.fillStyle = object.font_color;
-        ctx2.fillText(`${object.text}`,object.left,object.top);
+        ctx2.fillText(`${object.text}`,object.startX,object.startY);
     }
 }
 function rerender(){
@@ -94,6 +119,9 @@ function rerender(){
 //Object constructors
 function createObject(e){
     is_drawing = false;
+    if(curr_tool === "eraser"){
+        return;
+    }
     let object = {};
     if(curr_tool === "line"){
         let obj = new Shape_obj(e.clientX,e.clientY);
@@ -125,8 +153,10 @@ function createObject(e){
         object.font_color = document.getElementById("font_color").value;
         const tb = document.getElementById("textbox");
         object.text = tb.value;
-        object.top = parseFloat(tb.style.top);
-        object.left = parseFloat(tb.style.left);
+        object.startY = parseFloat(tb.style.top);
+        object.startX = parseFloat(tb.style.left);
+        object.endY = parseFloat(tb.scrollHeight) + object.startY;
+        object.endX = parseFloat(tb.scrollWidth) + object.startX;
         document.body.removeChild(tb);
     }
     object.stroke_color = document.getElementById("stroke_color").value;
@@ -136,6 +166,7 @@ function createObject(e){
     let undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
     undo_stack.push(object);
     localStorage.setItem("undo_stack", JSON.stringify(undo_stack));
+    state_array.push(convert_to_path2d(object));
     canvas2draw(object);
 }
 function Shape_obj(endX,endY){
@@ -222,7 +253,18 @@ function add_element(s,startX,startY,endX,endY){
         input.addEventListener("mousedown",(e)=>{e.stopPropagation()},true);
     }
 }
-
+function erase(x,y){
+    for(let i = state_array.length - 1 ; i > -1;i--){
+        if(ctx2.isPointInStroke(state_array[i],x,y) || ctx2.isPointInPath(state_array[i],x,y)){
+            state_array.splice(i,1);
+            let arr = JSON.parse(localStorage.getItem("undo_stack"));
+            arr.splice(i,1);
+            localStorage.setItem("undo_stack",JSON.stringify(arr));
+            ctx2.clearRect(0,0,canvas2.width,canvas2.height);
+            rerender();
+        }
+    }
+}
 
 //------------------------------Initializers-----------------------------------------------
 if(!localStorage.getItem("font_color")){
@@ -281,6 +323,10 @@ document.getElementById(stroke_style).classList.add("selected");
 change_toolbar(localStorage.getItem("toolbar"))
 change_cursor();
 change_style();
+{const undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
+    for(let item of undo_stack){
+    state_array.push(convert_to_path2d(item));
+}}
 ctx.lineWidth = JSON.parse(localStorage.getItem("stroke_width"));
 ctx.globalAlpha = JSON.parse(localStorage.getItem("opacity"));
 ctx.strokeStyle = localStorage.getItem("stroke_color");
@@ -297,7 +343,7 @@ for (const tool of tools) {
             change_toolbar("font");
             localStorage.setItem("toolbar", "font")
         }
-        else if(tool.id === "selection"){
+        else if(tool.id === "selection" || tool.id === "eraser"){
             change_toolbar("selection");
             localStorage.setItem("toolbar","selection");
         }
@@ -455,6 +501,9 @@ canvas.addEventListener("mousemove", (event) => {
                     draw_rectangle(event.clientX, event.clientY);
                 }
         }
+        else if(curr_tool === "eraser"){
+                erase(event.clientX,event.clientY);
+        }
 
     }
 })
@@ -507,6 +556,7 @@ function undo(e){
     if(arr.length !== 0)
     {
         const obj = arr.pop();
+        state_array.pop();
         arr2.push(obj);
         localStorage.setItem("undo_stack", JSON.stringify(arr));
         localStorage.setItem("redo_stack", JSON.stringify(arr2));
@@ -521,6 +571,7 @@ function redo(e){
     if(arr2.length !== 0){
         const obj = arr2.pop();
         arr.push(obj);
+        state_array.push(convert_to_path2d(obj));
         localStorage.setItem("undo_stack", JSON.stringify(arr));
         localStorage.setItem("redo_stack", JSON.stringify(arr2));
         canvas2draw(obj);
