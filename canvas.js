@@ -47,7 +47,7 @@ function convert_to_path2d(object){
         path.moveTo(object.startX,object.startY);
         path.lineTo(object.endX,object.endY);
     }
-    else if(object.type === "rectangle" || object.type === "text"){
+    else if(object.type === "rectangle" || object.type === "text" || object.type === "image"){
         path.rect(object.startX,object.startY,object.endX-object.startX,object.endY-object.startY);
     }
     else if(object.type === "circle"){
@@ -67,7 +67,6 @@ function convert_to_path2d(object){
 }
 //canvas2 drawing function
 function canvas2draw(object) {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx2.strokeStyle = object.stroke_color;
     ctx2.globalAlpha = object.opacity;
     ctx2.lineDashOffset = 0;
@@ -126,6 +125,16 @@ function canvas2draw(object) {
         ctx2.fillStyle = object.font_color;
         ctx2.fillText(`${object.text}`,object.startX,object.startY);
     }
+    else if(object.type === "image"){
+        const img = new Image();
+        img.src = object.imgdata;
+        img.onload = () =>{
+            ctx2.save();
+            ctx2.drawImage(img, Math.min(object.startX,object.endX), Math.min(object.startY,object.endY));
+            ctx2.restore();
+        }
+        
+    }
 }
 function rerender(){
     const undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
@@ -134,12 +143,41 @@ function rerender(){
 }}
 //Object constructors
 function createObject(e){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
     is_drawing = false;
     if(curr_tool === "eraser"){
         return;
     }
     let object = {};
-    if(curr_tool === "line"){
+    if (curr_tool === "image"){
+        let obj = new Shape_obj(e.clientX, e.clientY);
+        const width = Math.abs(obj.endX - obj.startX);
+        const height = Math.abs(obj.endY - obj.startY);
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = `https://picsum.photos/${width}/${height}`;
+        const reader = new FileReader();
+        fetch(img.src)
+        .then(response => {
+                return response.blob();
+            })
+        .then(blob => {
+                reader.readAsDataURL(blob); 
+        })
+                
+        reader.onloadend = () => {
+                let object = obj;
+                object.type = "image";
+                object.imgdata = reader.result;
+                let undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
+                undo_stack.push(object);
+                localStorage.setItem("undo_stack", JSON.stringify(undo_stack));
+                state_array.push(convert_to_path2d(object));
+                canvas2draw(object);
+        };
+        return;
+    }
+    else if(curr_tool === "line"){
         let obj = new Shape_obj(e.clientX,e.clientY);
         object = obj;
         object.type = "line";
@@ -452,6 +490,7 @@ function draw_box_outline(object){
         ctx.stroke()
 }
 function draw_outline(object){
+    ctx.save();
     ctx.lineWidth = "2";
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
@@ -470,7 +509,7 @@ function draw_outline(object){
        ctx.arc(object.endX,object.endY,5,0,2*Math.PI);
        ctx.fill();
     }
-    else if(object.type === "rectangle" || object.type === "circle" || object.type === "text"){
+    else if(object.type === "rectangle" || object.type === "circle" || object.type === "text" || object.type === "image"){
         draw_box_outline(object);
     }
     else if(object.type === "pencil" || object.type === "polygon"){
@@ -491,10 +530,7 @@ function draw_outline(object){
         draw_box_outline(object);
     }
 
-    change_style();
-    ctx.lineWidth = document.getElementById("stroke_width").value;
-    ctx.globalAlpha = document.getElementById("opacity").value/100;
-    ctx.strokeStyle = document.getElementById("stroke_color").value;
+    ctx.restore();
 }
 
 function move(disp_x,disp_y){
@@ -619,6 +655,9 @@ canvas.addEventListener("mousemove", (event) => {
         else if(curr_tool === "eraser"){
                 erase(event.clientX,event.clientY);
         }
+        else if(curr_tool === "image"){
+                draw_rectangle(event.clientX,event.clientY);
+        }
         
         }
     if(curr_tool === "selection"){
@@ -736,8 +775,3 @@ document.getElementById("stroke_width_value").textContent = `${document.getEleme
 document.getElementById("stroke_width").addEventListener("input", (event) => {
 document.getElementById("stroke_width_value").textContent = `${event.currentTarget.value}px`;
 });
-//TODO:
-//bug to be fixed later : drawing stops when pointer crosses toolbar
-//bug to be fixed later : stroke dotted appears strange with higher opacities
-//later change: change the eraser's crosshair
-//add canvas resizing feature, store all canvas objects in an array
