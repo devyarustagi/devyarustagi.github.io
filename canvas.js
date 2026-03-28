@@ -24,6 +24,7 @@ let state_array = [];
 let move_mode = 0;
 let image_cache = {};
 let selected_index = -1;
+let toolbar_state = 1;
 //mousedown -> draw dotted lines
 //-----------------------------------------------------------------------------------------
 //main funcs
@@ -247,24 +248,32 @@ function Shape_obj(endX,endY){
 
 //function to switch between font toolbar and shapes toolbar
 function change_toolbar(s){
-    if(s === "font"){
-        document.getElementById("font_manipulation").style.display = "flex";
-        document.getElementById("stroke_manipulation").style.display = "none";
-    }
-    else if(s === "stroke"){
-        document.getElementById("font_manipulation").style.display = "none";
-        document.getElementById("stroke_manipulation").style.display = "flex";
-    }
-    else if(s === "selection"){
-        document.getElementById("font_manipulation").style.display = "none";
-        document.getElementById("stroke_manipulation").style.display = "none";
+    if(toolbar_state === 1){
+        if(s === "font"){
+            document.getElementById("font_manipulation").style.display = "flex";
+            document.getElementById("stroke_manipulation").style.display = "none";
+        }
+        else if(s === "stroke"){
+            document.getElementById("font_manipulation").style.display = "none";
+            document.getElementById("stroke_manipulation").style.display = "flex";
+        }
+        else if(s === "selection"){
+            document.getElementById("font_manipulation").style.display = "none";
+            document.getElementById("stroke_manipulation").style.display = "none";
+        }
     }
 }
 
 //function to change the cursor
 function change_cursor(){
-    canvas.classList.remove("crosshair", "textcursor", "grabbing");
-    if (curr_tool !== "selection") {
+    canvas.classList.remove("crosshair", "textcursor", "erasing", "grabbing");
+    if(curr_tool === "text"){
+        canvas.classList.add("textcursor");
+    }
+    else if(curr_tool === "eraser"){
+        canvas.classList.add("erasing");
+    }
+    else if (curr_tool !== "selection") {
             canvas.classList.add("crosshair");
         }
 }
@@ -409,7 +418,7 @@ for (const tool of tools) {
             change_toolbar("font");
             localStorage.setItem("toolbar", "font")
         }
-        else if(tool.id === "selection" || tool.id === "eraser"){
+        else if(tool.id === "selection" || tool.id === "eraser" || tool.id === "image"){
             change_toolbar("selection");
             localStorage.setItem("toolbar","selection");
         }
@@ -417,6 +426,12 @@ for (const tool of tools) {
         {
             change_toolbar("stroke");
             localStorage.setItem("toolbar","stroke");
+        }
+        if(tool.id === "polygon"){
+            document.getElementById("hint").style.display = "flex";
+        }
+        else{
+            document.getElementById("hint").style.display = "none";
         }
         document.getElementById(curr_tool).classList.remove("selected");
         localStorage.setItem("curr_tool", event.currentTarget.id);
@@ -451,6 +466,25 @@ document.getElementById("font_family").addEventListener("change", (e) => {
 document.getElementById("font_size").addEventListener("change", (e) => {
         localStorage.setItem("font_size", e.currentTarget.value);
 });
+document.getElementById("options").addEventListener("click", (e)=>{
+        if(toolbar_state === 0){
+            toolbar_state = 1;
+            if(curr_tool === "eraser" || curr_tool === "selection" || curr_tool === "image"){
+                change_toolbar("selection");
+            }
+            else if(curr_tool === "text"){
+                change_toolbar("font");
+            }
+            else{
+                change_toolbar("stroke");
+            }
+            
+        }
+        else{
+            change_toolbar("selection");
+            toolbar_state = 0;
+        }
+})
 //----------------------------------------------------------------------------------------
 //live drawing functions :
 function draw_line(endX,endY) {
