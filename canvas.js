@@ -22,6 +22,7 @@ let mouse_downed_text = 0;
 console.log(localStorage.getItem("undo_stack"));
 let state_array = [];
 let move_mode = 0;
+let image_cache = {};
 let selected_index = -1;
 //mousedown -> draw dotted lines
 //-----------------------------------------------------------------------------------------
@@ -55,8 +56,8 @@ function convert_to_path2d(object){
     }
     else if(object.type === "pencil" || object.type === "polygon")
     {
+        path.moveTo(object.pencil_array[0].x, object.pencil_array[0].y);
         for(let i = 1; i < object.pencil_array.length; i++){
-            path.moveTo(object.pencil_array[i-1].x, object.pencil_array[i-1].y);
             path.lineTo(object.pencil_array[i].x,object.pencil_array[i].y);
         }
         if(object.type === "polygon"){
@@ -126,15 +127,27 @@ function canvas2draw(object) {
         ctx2.fillText(`${object.text}`,object.startX,object.startY);
     }
     else if(object.type === "image"){
-        const img = new Image();
-        img.src = object.imgdata;
-        img.onload = () =>{
+        const x = Math.min(object.startX, object.endX);
+        const y = Math.min(object.startY, object.endY);
+        const w = Math.abs(object.endX - object.startX);
+        const h = Math.abs(object.endY - object.startY);
+        if (image_cache[object.imgdata]) {
             ctx2.save();
-            ctx2.drawImage(img, Math.min(object.startX,object.endX), Math.min(object.startY,object.endY));
+            ctx2.drawImage(image_cache[object.imgdata], x, y, w, h);
             ctx2.restore();
-        }
+        } else {
+            const img = new Image();
+            img.src = object.imgdata;
+            img.onload = () => {
+                image_cache[object.imgdata] = img;
+                ctx2.save();
+                ctx2.drawImage(img, x, y, w, h);
+                ctx2.restore();
         
+            }
+        }
     }
+
 }
 function rerender(){
     const undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
@@ -151,8 +164,10 @@ function createObject(e){
     let object = {};
     if (curr_tool === "image"){
         let obj = new Shape_obj(e.clientX, e.clientY);
-        const width = Math.abs(obj.endX - obj.startX);
-        const height = Math.abs(obj.endY - obj.startY);
+        if (Math.abs(obj.endX - obj.startX) < 30) obj.endX = obj.startX + 30;
+        if (Math.abs(obj.endY - obj.startY) < 30) obj.endY = obj.startY + 30;
+        const width = Math.max(30,Math.abs(obj.endX - obj.startX));
+        const height = Math.max(30,Math.abs(obj.endY - obj.startY));
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.src = `https://picsum.photos/${width}/${height}`;
