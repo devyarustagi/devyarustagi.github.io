@@ -28,20 +28,7 @@ let toolbar_state = 1;
 //mousedown -> draw dotted lines
 //-----------------------------------------------------------------------------------------
 //main funcs
-//select func:
-function select(event){
-    const x = event.clientX;
-    const y = event.clientY;
-    for(let i = state_array.length - 1 ; i >= 0 ; i--){
-        if(ctx2.isPointInPath(state_array[i],x,y) || ctx2.isPointInStroke(state_array[i],x,y)){
-            selected_index = i;
-            canvas.classList.add("grabbing");
-            return;
-        }
-    }
-    selected_index = -1;
-    canvas.classList.remove("grabbing");
-}
+
 //convert to path2d:
 function convert_to_path2d(object){
     let path = new Path2D();
@@ -82,7 +69,7 @@ function canvas2draw(object) {
         ctx2.setLineDash([0,3*object.stroke_width]);
     }
     else{
-        ctx2.lineCap = "round";
+        ctx2.lineCap = "butt";
         ctx2.setLineDash([]);
     }
     if(object.type === "line"){
@@ -142,6 +129,7 @@ function canvas2draw(object) {
             img.onload = () => {
                 image_cache[object.imgdata] = img;
                 ctx2.save();
+                ctx2.globalAlpha = 1;
                 ctx2.drawImage(img, x, y, w, h);
                 ctx2.restore();
         
@@ -294,8 +282,8 @@ function change_style(){
         ctx2.setLineDash([0,3*stroke_width]);
     }
     else{
-        ctx.lineCap = "round";
-        ctx2.lineCap = "round";
+        ctx.lineCap = "butt";
+        ctx2.lineCap = "butt";
         ctx.setLineDash([]);
         ctx2.setLineDash([]);
     }
@@ -548,20 +536,7 @@ function draw_outline(object){
     ctx.globalAlpha = "1";
     ctx.setLineDash([]);
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    if(object.type === "line"){
-       ctx.beginPath(); 
-       ctx.moveTo(object.startX,object.startY);
-       ctx.arc(object.startX,object.startY,5,0,2*Math.PI);
-       ctx.moveTo((object.startX + object.endX)/2,(object.startY + object.endY)/2);
-       ctx.arc((object.endX + object.startX)/2,(object.endY + object.startY)/2,5,0,2*Math.PI);
-       ctx.moveTo(object.endX,object.endY);
-       ctx.arc(object.endX,object.endY,5,0,2*Math.PI);
-       ctx.fill();
-    }
-    else if(object.type === "rectangle" || object.type === "circle" || object.type === "text" || object.type === "image"){
-        draw_box_outline(object);
-    }
-    else if(object.type === "pencil" || object.type === "polygon"){
+    if(object.type === "pencil" || object.type === "polygon"){
         let max_x = object.pencil_array[0].x;
         let min_x = object.pencil_array[0].x;
         let max_y = object.pencil_array[0].y;
@@ -576,6 +551,9 @@ function draw_outline(object){
         object.endX = max_x;
         object.startY = min_y;
         object.endY = max_y;
+        draw_box_outline(object);
+    }
+    else{
         draw_box_outline(object);
     }
 
@@ -603,6 +581,20 @@ function move(disp_x,disp_y){
     localStorage.setItem("undo_stack",JSON.stringify(arr));
     rerender();
     draw_outline(object);
+}
+//select func:
+function select(event){
+    const x = event.clientX;
+    const y = event.clientY;
+    for(let i = state_array.length - 1 ; i >= 0 ; i--){
+        if(ctx2.isPointInPath(state_array[i],x,y) || ctx2.isPointInStroke(state_array[i],x,y)){
+            selected_index = i;
+            canvas.classList.add("grabbing");
+            return;
+        }
+    }
+    selected_index = -1;
+    canvas.classList.remove("grabbing");
 }
 //-----------------------------------------------------------------------------------------
 //event listeners
@@ -644,6 +636,7 @@ document.body.addEventListener("mousedown" , (e) => {
         }
     }
 },false)
+
 canvas.addEventListener("click", (event) => {    
     if(curr_tool === "polygon"){
         is_drawing = true;
