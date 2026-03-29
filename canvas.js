@@ -23,13 +23,36 @@ console.log(localStorage.getItem("undo_stack"));
 let state_array = [];
 let move_mode = 0;
 let image_cache = {};
-let selected_index = -1;
+let is_selected = 0;
 let toolbar_state = 1;
+let current_handles = {tl:{},tr:{},bl:{},br:{},rot:{}};
 //mousedown -> draw dotted lines
 //-----------------------------------------------------------------------------------------
 //main funcs
 
 //convert to path2d:
+function translater(x,y){
+    let arr = JSON.parse(localStorage.getItem("undo_stack"));
+    let object = arr[selected_index];
+    if(object.type === "pencil" || object.type === "polygon"){
+        for(let i = 0 ; i < object.pencil_array.length ; i++){
+            object.pencil_array[i].x += x;
+            object.pencil_array[i].y += y;
+        }
+    }
+    else{
+        object.startX += x;
+        object.endX += x;
+        object.endY += y;
+        object.startY += y;
+    }
+    arr[selected_index] = object;
+    state_array[selected_index] = convert_to_path2d(object);
+    ctx2.clearRect(0,0,canvas2.width,canvas2.height);
+    localStorage.setItem("undo_stack",JSON.stringify(arr));
+    rerender();
+    draw_outline(object);
+}
 function convert_to_path2d(object){
     let path = new Path2D();
     if(object.type === "line"){
@@ -44,9 +67,9 @@ function convert_to_path2d(object){
     }
     else if(object.type === "pencil" || object.type === "polygon")
     {
-        path.moveTo(object.pencil_array[0].x, object.pencil_array[0].y);
+        path.moveTo(object.centre.x + object.pencil_array[0].x, object.centre.y + object.pencil_array[0].y);
         for(let i = 1; i < object.pencil_array.length; i++){
-            path.lineTo(object.pencil_array[i].x,object.pencil_array[i].y);
+            path.lineTo(object.centre.x + object.pencil_array[i].x,object.centre.y + object.pencil_array[i].y);
         }
         if(object.type === "polygon"){
             path.closePath();
@@ -56,6 +79,9 @@ function convert_to_path2d(object){
 }
 //canvas2 drawing function
 function canvas2draw(object) {
+    ctx2.save();
+    ctx2.setTransform(new DOMMatrix(object.transform));
+    ctx2.translate(object.centre.x,object.centre.y);
     ctx2.strokeStyle = object.stroke_color;
     ctx2.globalAlpha = object.opacity;
     ctx2.lineDashOffset = 0;
@@ -120,9 +146,7 @@ function canvas2draw(object) {
         const w = Math.abs(object.endX - object.startX);
         const h = Math.abs(object.endY - object.startY);
         if (image_cache[object.imgdata]) {
-            ctx2.save();
             ctx2.drawImage(image_cache[object.imgdata], x, y, w, h);
-            ctx2.restore();
         } else {
             const img = new Image();
             img.src = object.imgdata;
@@ -130,12 +154,15 @@ function canvas2draw(object) {
                 image_cache[object.imgdata] = img;
                 ctx2.save();
                 ctx2.globalAlpha = 1;
+                ctx2.setTransform(new DOMMatrix(object.transform));
+                ctx2.translate(object.centre.x,object.centre.y);
                 ctx2.drawImage(img, x, y, w, h);
                 ctx2.restore();
         
             }
         }
     }
+    ctx2.restore();
 
 }
 function rerender(){
@@ -145,6 +172,7 @@ function rerender(){
 }}
 //Object constructors
 function createObject(e){
+    const matrix = ctx.getTransform();
     ctx.clearRect(0,0,canvas.width,canvas.height);
     is_drawing = false;
     if(curr_tool === "eraser"){
@@ -173,6 +201,18 @@ function createObject(e){
                 let object = obj;
                 object.type = "image";
                 object.imgdata = reader.result;
+                object.transform = matrix.toString();
+                object.box = {};
+                object.centre = {};
+                object.box.startX = Math.min(object.startX, object.endX) - 15;
+                object.box.startY = Math.min(object.startY,object.endY) - 15;
+                object.box.endX = Math.max(object.endX,object.startX) + 15;
+                object.box.endY = Math.max(object.endY,object.startY) + 15;
+                object.centre = {x:(object.box.startX + object.box.endX)/2, y:(object.box.endY + object.box.startY)/2};
+                object.startX = object.startX - object.centre.x;
+                object.startY = object.startY - object.centre.y;
+                object.endX = object.endX - object.centre.x;
+                object.endY = object.endY - object.centre.y;
                 let undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
                 undo_stack.push(object);
                 localStorage.setItem("undo_stack", JSON.stringify(undo_stack));
@@ -217,10 +257,46 @@ function createObject(e){
         object.endX = parseFloat(tb.scrollWidth) + object.startX;
         document.body.removeChild(tb);
     }
+    if(object.type === "pencil" || object.type === "polygon"){
+        let max_x = object.pencil_array[0].x;
+        let min_x = object.pencil_array[0].x;
+        let max_y = object.pencil_array[0].y;
+        let min_y = object.pencil_array[0].y;
+        for(let i = 1 ; i < object.pencil_array.length; i++){
+            max_x = Math.max(object.pencil_array[i].x,max_x);
+            max_y = Math.max(object.pencil_array[i].y,max_y);
+            min_x = Math.min(object.pencil_array[i].x,min_x);
+            min_y = Math.min(object.pencil_array[i].y,min_y);
+        }
+        object.startX = min_x;
+        object.endX = max_x;
+        object.startY = min_y;
+        object.endY = max_y;
+    }
+    object.transform = matrix.toString();
     object.stroke_color = document.getElementById("stroke_color").value;
     object.opacity = document.getElementById("opacity").value/100;
     object.stroke_width = document.getElementById("stroke_width").value;
     object.stroke_style = stroke_style;
+    object.box = {};
+    object.centre = {};
+    object.box.startX = Math.min(object.startX, object.endX) - 15;
+    object.box.startY = Math.min(object.startY,object.endY) - 15;
+    object.box.endX = Math.max(object.endX,object.startX) + 15;
+    object.box.endY = Math.max(object.endY,object.startY) + 15;
+    object.box.rotate_handle_x = (object.box.startX + object.box.endX)/2;
+    object.box.rotate_handle_y = object.box.startY - 30;
+    object.centre = {x:(object.box.startX + object.box.endX)/2, y:(object.box.endY + object.box.startY)/2};
+    if(object.type === "pencil" || object.type === "polygon"){
+        for(let i = 0 ; i < object.pencil_array.length; i++){
+            object.pencil_array[i].x -= object.centre.x;
+            object.pencil_array[i].y -= object.centre.y;
+        }
+    }
+    object.startX = object.startX - object.centre.x;
+    object.startY = object.startY - object.centre.y;
+    object.endX = object.endX - object.centre.x;
+    object.endY = object.endY - object.centre.y;
     let undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
     undo_stack.push(object);
     localStorage.setItem("undo_stack", JSON.stringify(undo_stack));
@@ -503,27 +579,24 @@ function draw_free(endX, endY) {
     startY = endY;
 }
 function draw_box_outline(object){
-        const dir_x = (object.startX - object.endX)/Math.abs(object.startX - object.endX);
-        const dir_y = (object.startY - object.endY)/Math.abs(object.startY - object.endY);
-        object.startX = object.startX + 15*dir_x;
-        object.startY = object.startY + 15*dir_y;
-        object.endX = object.endX - 15*dir_x;
-        object.endY = object.endY - 15*dir_y;
         ctx.beginPath();
-        ctx.moveTo(object.startX,object.startY);
-        ctx.arc(object.startX,object.startY,5,0,2*Math.PI);
-        ctx.moveTo(object.endX,object.startY);
-        ctx.arc(object.endX,object.startY,5,0,2*Math.PI);
-        ctx.moveTo(object.endX,object.endY);
-        ctx.arc(object.endX,object.endY,5,0,2*Math.PI);
-        ctx.moveTo(object.startX,object.endY);
-        ctx.arc(object.startX,object.endY,5,0,2*Math.PI);
+        ctx.moveTo(object.box.rotate_handle_x, object.box.rotate_handle_y);
+        ctx.arc(object.box.rotate_handle_x,object.box.rotate_handle_y,5,0,2*Math.PI);
+        ctx.moveTo(object.box.startX,object.box.startY);
+        ctx.arc(object.box.startX,object.box.startY,5,0,2*Math.PI);
+        ctx.moveTo(object.box.endX,object.box.startY);
+        ctx.arc(object.box.endX,object.box.startY,5,0,2*Math.PI);
+        ctx.moveTo(object.box.endX,object.box.endY);
+        ctx.arc(object.box.endX,object.box.endY,5,0,2*Math.PI);
+        ctx.moveTo(object.box.startX,object.box.endY);
+        ctx.arc(object.box.startX,object.box.endY,5,0,2*Math.PI);
         ctx.fill();
-        ctx.moveTo(object.startX,object.startY);
-        ctx.lineTo(object.endX,object.startY);
-        ctx.lineTo(object.endX,object.endY);
-        ctx.lineTo(object.startX,object.endY);
-        ctx.lineTo(object.startX,object.startY);
+        current_handles.tl = {}
+        ctx.moveTo(object.box.startX,object.box.startY);
+        ctx.lineTo(object.box.endX,object.box.startY);
+        ctx.lineTo(object.box.endX,object.box.endY);
+        ctx.lineTo(object.box.startX,object.box.endY);
+        ctx.lineTo(object.box.startX,object.box.startY);
         ctx.stroke()
 }
 function draw_outline(object){
@@ -560,41 +633,19 @@ function draw_outline(object){
     ctx.restore();
 }
 
-function move(disp_x,disp_y){
-    let arr = JSON.parse(localStorage.getItem("undo_stack"));
-    let object = arr[selected_index];
-    if(object.type === "pencil" || object.type === "polygon"){
-        for(let i = 0 ; i < object.pencil_array.length ; i++){
-            object.pencil_array[i].x += disp_x;
-            object.pencil_array[i].y += disp_y;
-        }
-    }
-    else{
-        object.startX += disp_x;
-        object.endX += disp_x;
-        object.endY += disp_y;
-        object.startY += disp_y;
-    }
-    arr[selected_index] = object;
-    state_array[selected_index] = convert_to_path2d(object);
-    ctx2.clearRect(0,0,canvas2.width,canvas2.height);
-    localStorage.setItem("undo_stack",JSON.stringify(arr));
-    rerender();
-    draw_outline(object);
-}
+
 //select func:
-function select(event){
-    const x = event.clientX;
-    const y = event.clientY;
-    for(let i = state_array.length - 1 ; i >= 0 ; i--){
-        if(ctx2.isPointInPath(state_array[i],x,y) || ctx2.isPointInStroke(state_array[i],x,y)){
-            selected_index = i;
-            canvas.classList.add("grabbing");
-            return;
-        }
+function OOB(e){
+    if(is_selected === 0){
+        const x = e.clientX;
+        const y = e.clientY;
+        for(let i = state_array.length - 1 ; i >= 0 ; i--){
+            if(ctx2.isPointInPath(state_array[i],x,y) || ctx2.isPointInStroke(state_array[i],x,y)){
+                draw_outline(JSON.parse(localStorage.getItem("undo_stack"))[i]);
+                return;
+            }
     }
-    selected_index = -1;
-    canvas.classList.remove("grabbing");
+    }
 }
 //-----------------------------------------------------------------------------------------
 //event listeners
@@ -606,15 +657,7 @@ canvas.addEventListener("mousedown", (event) => {
         pencil_array = [{x: startX, y: startY}];
     }
     else if(curr_tool === "selection"){
-        if(selected_index !== -1){
-            move_mode = 1;
-            startX = event.clientX;
-            startY = event.clientY;
-            draw_outline(JSON.parse(localStorage.getItem("undo_stack"))[selected_index]);
-        }
-        else{
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-        }
+        
     }
     else if(curr_tool === "text"){
         if(text_box === 0){
