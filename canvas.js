@@ -439,7 +439,7 @@ for (const butt of stroke_buttons){
     }
 )};
 document.getElementById("stroke_width").addEventListener("change", (event) => {
-        localStorage.setItem("stroke_width", JSON.stringify(event.target.value));
+        localStorage.setItem("stroke_width", event.target.value);
         ctx.lineWidth = event.target.value;
         ctx2.lineWidth = event.target.value;
         change_style();
