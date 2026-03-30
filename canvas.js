@@ -827,6 +827,7 @@ function resize(e){
 //-----------------------------------------------------------------------------------------
 //event listeners
 canvas.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
     is_drawing = true;
     startX = event.clientX;
     startY = event.clientY;
@@ -834,6 +835,7 @@ canvas.addEventListener("pointerdown", (event) => {
         pencil_array = [{x: startX, y: startY}];
     }
     else if(curr_tool === "selection"){
+        is_drawing = false;
         if(is_selected === 0){
             const x = OOB(event);
             if(x === 0){
@@ -882,6 +884,7 @@ canvas.addEventListener("pointerdown", (event) => {
     }
 })
 document.body.addEventListener("pointerdown" , (e) => {
+    e.preventDefault();
     if(curr_tool === "text" && text_box === 1){
         if(document.getElementById("textbox").value !== null){createObject(e);}
         else{document.body.removeChild(document.getElementById("textbox"));
@@ -889,7 +892,8 @@ document.body.addEventListener("pointerdown" , (e) => {
     }
 },false)
 
-canvas.addEventListener("click", (event) => {    
+canvas.addEventListener("click", (event) => {
+    event.preventDefault();    
     if(curr_tool === "polygon"){
         is_drawing = true;
         startX = event.clientX;
@@ -909,6 +913,7 @@ canvas.addEventListener("click", (event) => {
     }
 })
 canvas.addEventListener("dblclick", (e) => {
+    e.preventDefault();
     if(curr_tool === "polygon"){
         startX = e.clientX;
         startY = e.clientY;
@@ -922,6 +927,7 @@ canvas.addEventListener("dblclick", (e) => {
     }
 })
 canvas.addEventListener("pointermove", (event) => {
+    event.preventDefault();
     if (is_drawing === true) {
         prev_undo = false;
         localStorage.setItem("redo_stack","[]");
@@ -976,6 +982,7 @@ canvas.addEventListener("pointermove", (event) => {
     }
 })
 canvas.addEventListener("pointerup", (e) => {
+    e.preventDefault();
     if(curr_tool === "text" && text_box === 0){
         ctx.lineWidth = localStorage.getItem("stroke_width");
         ctx.strokeStyle = localStorage.getItem("stroke_color");
@@ -999,6 +1006,7 @@ canvas.addEventListener("pointerup", (e) => {
 
 //to prevent glitches when pointer leaves canvas
 canvas.addEventListener("pointerleave", (e) => {
+    e.preventDefault();
     in_poly_mode = false;
     if(curr_tool === "selection"){
         is_selected = 0;
