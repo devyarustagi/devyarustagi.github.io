@@ -888,43 +888,6 @@ document.body.addEventListener("pointerdown" , (e) => {
         }
     }
 },false)
-let lastClick = 0
-canvas.addEventListener("touchstart", (e) => {
-        let date = new Date();
-        let time = date.getTime();
-        const time_between_taps = 400; // 200ms
-        if (time - lastClick > time_between_taps) {
-            if(curr_tool === "polygon"){
-                is_drawing = true;
-                startX = e.clientX;
-                startY = e.clientY;
-            if(in_poly_mode === false){
-                in_poly_mode = true;
-                pencil_array = [{x: startX, y: startY}];
-            }
-            else{
-                ctx.clearRect(0,0,canvas.width,canvas.height);
-                pencil_array.push({x: startX, y: startY});
-                ctx2.beginPath();
-                ctx2.moveTo(startX,startY);
-                ctx2.lineTo(pencil_array[pencil_array.length-2].x,pencil_array[pencil_array.length-2].y);
-                ctx2.stroke();
-            }
-        }
-        }
-        else{
-            startX = e.clientX;
-            startY = e.clientY;
-            in_poly_mode = false;
-            pencil_array.push({x: startX, y: startY});
-            ctx.beginPath();
-            ctx.moveTo(startX,startY);
-            ctx.lineTo(pencil_array[0].x,pencil_array[0].y);
-            ctx.stroke();
-            createObject(e)
-        }
-        lastClick = time;
-})
 
 canvas.addEventListener("click", (event) => {    
     if(curr_tool === "polygon"){
@@ -1033,6 +996,23 @@ canvas.addEventListener("pointerup", (e) => {
     
     
 });
+
+//to prevent glitches when pointer leaves canvas
+canvas.addEventListener("pointerleave", (e) => {
+    in_poly_mode = false;
+    if(curr_tool === "selection"){
+        is_selected = 0;
+        curr_object = {};
+        s_index = -1;
+        ctx2.clearRect(0,0,canvas2.width,canvas2.height);
+        rerender();
+        cursor_setter(-1);
+        mode = 'none';
+    }
+    else if(is_drawing === true){
+        createObject(e);
+    }
+    })
 
 document.getElementById("stroke_color").addEventListener("change", (event) => {
     localStorage.setItem("stroke_color", event.currentTarget.value);
