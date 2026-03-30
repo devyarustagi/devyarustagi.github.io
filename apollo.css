@@ -197,6 +197,10 @@ button {
     left:0;
 }
 
+#test, #final{
+    touch-action: none;
+}
+
 .beautifiers{
     border:0;
     margin:0;
