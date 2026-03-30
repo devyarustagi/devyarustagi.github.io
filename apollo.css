@@ -275,7 +275,8 @@ output{
     width:90vw;
     left:5vw;
     height:6vh;
-    right:5vw
+    right:5vw;
+    padding : 0 1vw;
   }
   #theme{
     top:auto;

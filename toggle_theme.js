@@ -4,6 +4,7 @@ if(!localStorage.getItem("canvas_color")){
     localStorage.setItem("canvas_color","#222831")
 }
 document.documentElement.style.setProperty('--bg-color', `${localStorage.getItem("canvas_color")}`);
+document.getElementById("canvas_color").value = localStorage.getItem("canvas_color");
 document.getElementById("canvas_color").addEventListener("change",(e)=>{
     localStorage.setItem("canvas_color",`${e.currentTarget.value}`)
     document.documentElement.style.setProperty('--bg-color', `${e.currentTarget.value}`);
