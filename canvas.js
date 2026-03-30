@@ -19,40 +19,22 @@ let curr_tool = localStorage.getItem("curr_tool");
 let stroke_style = localStorage.getItem("stroke_style");
 let text_box = 0;
 let mouse_downed_text = 0;
-console.log(localStorage.getItem("undo_stack"));
 let state_array = [];
 let move_mode = 0;
 let image_cache = {};
 let is_selected = 0;
 let toolbar_state = 1;
+let curr_cursor_class = "dummy_class"; //to speed up remove only this 
 let current_handles = {tl:{},tr:{},bl:{},br:{},rot:{}};
+let mode = 'none';
+let curr_object = {};
+let s_index = -1;
+let active_handle = 'none';
 //mousedown -> draw dotted lines
 //-----------------------------------------------------------------------------------------
 //main funcs
 
 //convert to path2d:
-function translater(x,y){
-    let arr = JSON.parse(localStorage.getItem("undo_stack"));
-    let object = arr[selected_index];
-    if(object.type === "pencil" || object.type === "polygon"){
-        for(let i = 0 ; i < object.pencil_array.length ; i++){
-            object.pencil_array[i].x += x;
-            object.pencil_array[i].y += y;
-        }
-    }
-    else{
-        object.startX += x;
-        object.endX += x;
-        object.endY += y;
-        object.startY += y;
-    }
-    arr[selected_index] = object;
-    state_array[selected_index] = convert_to_path2d(object);
-    ctx2.clearRect(0,0,canvas2.width,canvas2.height);
-    localStorage.setItem("undo_stack",JSON.stringify(arr));
-    rerender();
-    draw_outline(object);
-}
 function convert_to_path2d(object){
     let path = new Path2D();
     if(object.type === "line"){
@@ -63,13 +45,13 @@ function convert_to_path2d(object){
         path.rect(object.startX,object.startY,object.endX-object.startX,object.endY-object.startY);
     }
     else if(object.type === "circle"){
-        path.ellipse((object.startX+object.endX)/2, (object.endY+object.startY)/2,Math.abs((object.endX-object.startX)/2),Math.abs((object.endY-object.startY)/2),0,0,2*Math.PI)
+        path.ellipse((object.startX+object.endX)/2, (object.endY+object.startY)/2,(object.endX-object.startX)/2,(object.endY-object.startY)/2,0,0,2*Math.PI)
     }
     else if(object.type === "pencil" || object.type === "polygon")
     {
-        path.moveTo(object.centre.x + object.pencil_array[0].x, object.centre.y + object.pencil_array[0].y);
+        path.moveTo(object.pencil_array[0].x,object.pencil_array[0].y);
         for(let i = 1; i < object.pencil_array.length; i++){
-            path.lineTo(object.centre.x + object.pencil_array[i].x,object.centre.y + object.pencil_array[i].y);
+            path.lineTo(object.pencil_array[i].x,object.pencil_array[i].y);
         }
         if(object.type === "polygon"){
             path.closePath();
@@ -77,11 +59,20 @@ function convert_to_path2d(object){
     }
     return path;
 }
+
+//to convert mouse coordinates to local coordinates relative to new axes:
+function change_coordinates(X,Y,object){
+    let a = X - object.centre.x;
+    let b = Y - object.centre.y;
+    const cosA = Math.cos(-object.angle); //rotate mouse coords opposite
+    const sinA = Math.sin(-object.angle);
+    return {x: a*cosA - b*sinA, y: a*sinA + b*cosA};
+}
 //canvas2 drawing function
 function canvas2draw(object) {
     ctx2.save();
-    ctx2.setTransform(new DOMMatrix(object.transform));
     ctx2.translate(object.centre.x,object.centre.y);
+    ctx2.rotate(object.angle);
     ctx2.strokeStyle = object.stroke_color;
     ctx2.globalAlpha = object.opacity;
     ctx2.lineDashOffset = 0;
@@ -106,7 +97,7 @@ function canvas2draw(object) {
     }
     else if(object.type === "circle"){
         ctx2.beginPath();
-        ctx2.ellipse((object.startX+object.endX)/2, (object.endY+object.startY)/2,Math.abs((object.endX-object.startX)/2),Math.abs((object.endY-object.startY)/2),0,0,2*Math.PI);
+        ctx2.ellipse((object.startX+object.endX)/2, (object.endY+object.startY)/2,(object.endX-object.startX)/2,(object.endY-object.startY)/2,0,0,2*Math.PI);
         ctx2.stroke();
     }
     else if(object.type === "rectangle"){
@@ -141,10 +132,10 @@ function canvas2draw(object) {
         ctx2.fillText(`${object.text}`,object.startX,object.startY);
     }
     else if(object.type === "image"){
-        const x = Math.min(object.startX, object.endX);
-        const y = Math.min(object.startY, object.endY);
-        const w = Math.abs(object.endX - object.startX);
-        const h = Math.abs(object.endY - object.startY);
+        const x = object.startX;
+        const y = object.startY;
+        const w = (object.endX - object.startX);
+        const h = (object.endY - object.startY);
         if (image_cache[object.imgdata]) {
             ctx2.drawImage(image_cache[object.imgdata], x, y, w, h);
         } else {
@@ -154,8 +145,8 @@ function canvas2draw(object) {
                 image_cache[object.imgdata] = img;
                 ctx2.save();
                 ctx2.globalAlpha = 1;
-                ctx2.setTransform(new DOMMatrix(object.transform));
                 ctx2.translate(object.centre.x,object.centre.y);
+                ctx2.rotate(object.angle);
                 ctx2.drawImage(img, x, y, w, h);
                 ctx2.restore();
         
@@ -165,14 +156,45 @@ function canvas2draw(object) {
     ctx2.restore();
 
 }
+//function to rerender the second canvas
 function rerender(){
+    ctx2.save();
+    ctx2.resetTransform();
+    ctx2.clearRect(0,0,canvas2.width,canvas2.height);
+    ctx2.restore();
     const undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
     for(let item of undo_stack){
-    canvas2draw(item);
+        canvas2draw(item);
 }}
 //Object constructors
+function update_handles(object){
+    if(object.type !== "line"){
+        object.tl_handle = {x: object.startX - 15, y: object.startY - 15};
+        object.tr_handle = {x: object.endX + 15,   y: object.startY - 15};
+        object.br_handle = {x: object.endX + 15,   y: object.endY + 15};
+        object.bl_handle = {x: object.startX - 15, y: object.endY + 15};
+        object.rotate_handle = { 
+            x: (object.startX + object.endX) / 2, 
+            y: object.startY - 45 
+        };
+    }
+    else if(object.type === "line"){
+        const sx = Math.min(object.startX, object.endX);
+        const ex = Math.max(object.endX, object.startX);
+        const sy = Math.min(object.startY,object.endY);
+        const ey = Math.max(object.endY,object.startY);
+        object.tl_handle = {x: sx - 15, y: sy - 15};
+        object.tr_handle = {x: ex + 15,   y: sy - 15};
+        object.br_handle = {x: ex + 15,   y: ey + 15};
+        object.bl_handle = {x: sx - 15, y: ey + 15};
+        object.rotate_handle = { 
+            x: (sx + ex) / 2, 
+            y: sy - 45
+        };
+    }
+}
+//function to initialize objects
 function createObject(e){
-    const matrix = ctx.getTransform();
     ctx.clearRect(0,0,canvas.width,canvas.height);
     is_drawing = false;
     if(curr_tool === "eraser"){
@@ -181,10 +203,13 @@ function createObject(e){
     let object = {};
     if (curr_tool === "image"){
         let obj = new Shape_obj(e.clientX, e.clientY);
-        if (Math.abs(obj.endX - obj.startX) < 30) obj.endX = obj.startX + 30;
-        if (Math.abs(obj.endY - obj.startY) < 30) obj.endY = obj.startY + 30;
         const width = Math.max(30,Math.abs(obj.endX - obj.startX));
         const height = Math.max(30,Math.abs(obj.endY - obj.startY));
+        obj.startX = Math.min(obj.startX,obj.endX);
+        obj.startY = Math.min(obj.startY,obj.endY);
+        obj.endX = obj.startX + width;
+        obj.endY = obj.startY + height;
+    
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.src = `https://picsum.photos/${width}/${height}`;
@@ -201,18 +226,22 @@ function createObject(e){
                 let object = obj;
                 object.type = "image";
                 object.imgdata = reader.result;
-                object.transform = matrix.toString();
-                object.box = {};
-                object.centre = {};
-                object.box.startX = Math.min(object.startX, object.endX) - 15;
-                object.box.startY = Math.min(object.startY,object.endY) - 15;
-                object.box.endX = Math.max(object.endX,object.startX) + 15;
-                object.box.endY = Math.max(object.endY,object.startY) + 15;
-                object.centre = {x:(object.box.startX + object.box.endX)/2, y:(object.box.endY + object.box.startY)/2};
+                object.angle = 0;
+
+                object.centre = {x: (object.startX + object.endX)/2, y: (object.startY + object.endY)/2};
                 object.startX = object.startX - object.centre.x;
                 object.startY = object.startY - object.centre.y;
                 object.endX = object.endX - object.centre.x;
                 object.endY = object.endY - object.centre.y;
+
+                object.tl_handle = {x: object.startX - 15, y: object.startY - 15};
+                object.tr_handle = {x: object.endX + 15,   y: object.startY - 15};
+                object.br_handle = {x: object.endX + 15,   y: object.endY + 15};
+                object.bl_handle = {x: object.startX - 15, y: object.endY + 15};
+                object.rotate_handle = { 
+                    x: (object.startX + object.endX) / 2, 
+                    y: object.startY - 45 
+                };
                 let undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
                 undo_stack.push(object);
                 localStorage.setItem("undo_stack", JSON.stringify(undo_stack));
@@ -273,43 +302,56 @@ function createObject(e){
         object.startY = min_y;
         object.endY = max_y;
     }
-    object.transform = matrix.toString();
     object.stroke_color = document.getElementById("stroke_color").value;
     object.opacity = document.getElementById("opacity").value/100;
     object.stroke_width = document.getElementById("stroke_width").value;
     object.stroke_style = stroke_style;
-    object.box = {};
-    object.centre = {};
-    object.box.startX = Math.min(object.startX, object.endX) - 15;
-    object.box.startY = Math.min(object.startY,object.endY) - 15;
-    object.box.endX = Math.max(object.endX,object.startX) + 15;
-    object.box.endY = Math.max(object.endY,object.startY) + 15;
-    object.box.rotate_handle_x = (object.box.startX + object.box.endX)/2;
-    object.box.rotate_handle_y = object.box.startY - 30;
-    object.centre = {x:(object.box.startX + object.box.endX)/2, y:(object.box.endY + object.box.startY)/2};
+    object.angle = 0;
+
+    object.centre = {x: (object.startX + object.endX)/2, y: (object.startY + object.endY)/2};
+    object.startX = object.startX - object.centre.x;
+    object.startY = object.startY - object.centre.y;
+    object.endX = object.endX - object.centre.x;
+    object.endY = object.endY - object.centre.y;
+    update_handles(object);
+    
     if(object.type === "pencil" || object.type === "polygon"){
         for(let i = 0 ; i < object.pencil_array.length; i++){
             object.pencil_array[i].x -= object.centre.x;
             object.pencil_array[i].y -= object.centre.y;
         }
     }
-    object.startX = object.startX - object.centre.x;
-    object.startY = object.startY - object.centre.y;
-    object.endX = object.endX - object.centre.x;
-    object.endY = object.endY - object.centre.y;
     let undo_stack = JSON.parse(localStorage.getItem("undo_stack"));
     undo_stack.push(object);
     localStorage.setItem("undo_stack", JSON.stringify(undo_stack));
     state_array.push(convert_to_path2d(object));
     canvas2draw(object);
 }
+//function to create corners
 function Shape_obj(endX,endY){
-    this.startX = startX;
-    this.startY = startY;
-    this.endX = endX;
-    this.endY= endY;
+    if(curr_tool !== "line"){
+        this.startX = Math.min(startX,endX);
+        this.startY = Math.min(startY,endY);
+        this.endX = Math.max(startX,endX);
+        this.endY= Math.max(startY,endY);
+    }
+    else if(curr_tool === "line"){
+        this.startX = startX;
+        this.startY = startY;
+        this.endX = endX;
+        this.endY = endY;
+    }
 }
-
+//function to do the hittesting, x and y are mouse coordinates wr to og coords
+function hit_test(index,obj,x,y){
+    const p = change_coordinates(x,y,obj);
+    ctx2.save();
+    ctx2.lineWidth = obj.stroke_width;
+    ctx2.resetTransform();
+    const ans = (ctx2.isPointInPath(state_array[index],p.x,p.y) || ctx2.isPointInStroke(state_array[index],p.x,p.y)) ? 1 : 0;
+    ctx2.restore();
+    return ans;
+}
 //function to switch between font toolbar and shapes toolbar
 function change_toolbar(s){
     if(toolbar_state === 1){
@@ -392,18 +434,18 @@ function add_element(s,startX,startY,endX,endY){
         input.addEventListener("mousedown",(e)=>{e.stopPropagation()},true);
     }
 }
-function erase(x,y){
+function erase(e){
+    let arr = JSON.parse(localStorage.getItem("undo_stack"));
     for(let i = state_array.length - 1 ; i > -1;i--){
-        if(ctx2.isPointInStroke(state_array[i],x,y) || ctx2.isPointInPath(state_array[i],x,y)){
-            state_array.splice(i,1);
-            let arr = JSON.parse(localStorage.getItem("undo_stack"));
-            arr.splice(i,1);
-            localStorage.setItem("undo_stack",JSON.stringify(arr));
-            ctx2.clearRect(0,0,canvas2.width,canvas2.height);
-            rerender();
+            if(hit_test(i,arr[i],e.clientX,e.clientY) === 1){
+                state_array.splice(i,1);
+                arr.splice(i,1);
+                localStorage.setItem("undo_stack",JSON.stringify(arr));
+            }
         }
-    }
+    rerender();
 }
+
 
 //------------------------------Initializers-----------------------------------------------
 if(!localStorage.getItem("font_color")){
@@ -578,74 +620,209 @@ function draw_free(endX, endY) {
     startX = endX;
     startY = endY;
 }
-function draw_box_outline(object){
-        ctx.beginPath();
-        ctx.moveTo(object.box.rotate_handle_x, object.box.rotate_handle_y);
-        ctx.arc(object.box.rotate_handle_x,object.box.rotate_handle_y,5,0,2*Math.PI);
-        ctx.moveTo(object.box.startX,object.box.startY);
-        ctx.arc(object.box.startX,object.box.startY,5,0,2*Math.PI);
-        ctx.moveTo(object.box.endX,object.box.startY);
-        ctx.arc(object.box.endX,object.box.startY,5,0,2*Math.PI);
-        ctx.moveTo(object.box.endX,object.box.endY);
-        ctx.arc(object.box.endX,object.box.endY,5,0,2*Math.PI);
-        ctx.moveTo(object.box.startX,object.box.endY);
-        ctx.arc(object.box.startX,object.box.endY,5,0,2*Math.PI);
-        ctx.fill();
-        current_handles.tl = {}
-        ctx.moveTo(object.box.startX,object.box.startY);
-        ctx.lineTo(object.box.endX,object.box.startY);
-        ctx.lineTo(object.box.endX,object.box.endY);
-        ctx.lineTo(object.box.startX,object.box.endY);
-        ctx.lineTo(object.box.startX,object.box.startY);
-        ctx.stroke()
+function return_box_outline(object){ 
+        ctx2.save();
+        ctx2.resetTransform();
+        let path = new Path2D();
+        ctx2.beginPath();
+        path.moveTo(object.tl_handle.x, object.tl_handle.y);
+        path.arc(object.tl_handle.x,object.tl_handle.y,5,0,2*Math.PI);
+        path.moveTo(object.bl_handle.x,object.bl_handle.y);
+        path.arc(object.bl_handle.x,object.bl_handle.y,5,0,2*Math.PI);
+        path.moveTo(object.br_handle.x,object.br_handle.y);
+        path.arc(object.br_handle.x,object.br_handle.y,5,0,2*Math.PI);
+        path.moveTo(object.tr_handle.x,object.tr_handle.y);
+        path.arc(object.tr_handle.x,object.tr_handle.y,5,0,2*Math.PI);
+        path.moveTo(object.rotate_handle.x,object.rotate_handle.y);
+        path.arc(object.rotate_handle.x,object.rotate_handle.y,5,0,2*Math.PI);
+        path.moveTo(object.tl_handle.x,object.tl_handle.y);
+        path.lineTo(object.bl_handle.x,object.bl_handle.y);
+        path.lineTo(object.br_handle.x,object.br_handle.y);
+        path.lineTo(object.tr_handle.x,object.tr_handle.y);
+        path.closePath();
+        ctx2.restore();
+        return path;
 }
-function draw_outline(object){
-    ctx.save();
-    ctx.lineWidth = "2";
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#16a7f5"
-    ctx.fillStyle = "#16a7f5"
-    ctx.globalAlpha = "1";
-    ctx.setLineDash([]);
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    if(object.type === "pencil" || object.type === "polygon"){
-        let max_x = object.pencil_array[0].x;
-        let min_x = object.pencil_array[0].x;
-        let max_y = object.pencil_array[0].y;
-        let min_y = object.pencil_array[0].y;
-        for(let i = 1 ; i < object.pencil_array.length; i++){
-            max_x = Math.max(object.pencil_array[i].x,max_x);
-            max_y = Math.max(object.pencil_array[i].y,max_y);
-            min_x = Math.min(object.pencil_array[i].x,min_x);
-            min_y = Math.min(object.pencil_array[i].y,min_y);
-        }
-        object.startX = min_x;
-        object.endX = max_x;
-        object.startY = min_y;
-        object.endY = max_y;
-        draw_box_outline(object);
-    }
-    else{
-        draw_box_outline(object);
-    }
-
-    ctx.restore();
+function draw_box_outline(object){
+        ctx2.save();
+        rerender(); 
+        ctx2.resetTransform();
+        ctx2.translate(object.centre.x,object.centre.y);
+        ctx2.rotate(object.angle);
+        ctx2.lineWidth = "2";
+        ctx2.lineJoin = "round";
+        ctx2.lineCap = "round";
+        ctx2.strokeStyle = "#16a7f5"
+        ctx2.fillStyle = "#16a7f5"
+        ctx2.globalAlpha = "1";
+        ctx2.setLineDash([]);
+        ctx2.beginPath();
+        ctx2.moveTo(object.tl_handle.x, object.tl_handle.y);
+        ctx2.arc(object.tl_handle.x,object.tl_handle.y,5,0,2*Math.PI);
+        ctx2.moveTo(object.bl_handle.x,object.bl_handle.y);
+        ctx2.arc(object.bl_handle.x,object.bl_handle.y,5,0,2*Math.PI);
+        ctx2.moveTo(object.br_handle.x,object.br_handle.y);
+        ctx2.arc(object.br_handle.x,object.br_handle.y,5,0,2*Math.PI);
+        ctx2.moveTo(object.tr_handle.x,object.tr_handle.y);
+        ctx2.arc(object.tr_handle.x,object.tr_handle.y,5,0,2*Math.PI);
+        ctx2.moveTo(object.rotate_handle.x,object.rotate_handle.y);
+        ctx2.arc(object.rotate_handle.x,object.rotate_handle.y,5,0,2*Math.PI);
+        ctx2.fill();
+        ctx2.moveTo(object.tl_handle.x,object.tl_handle.y);
+        ctx2.lineTo(object.bl_handle.x,object.bl_handle.y);
+        ctx2.lineTo(object.br_handle.x,object.br_handle.y);
+        ctx2.lineTo(object.tr_handle.x,object.tr_handle.y);
+        ctx2.closePath();
+        ctx2.stroke();
+        ctx2.restore();
 }
 
 
 //select func:
-function OOB(e){
+function OOB(e){ //takes event for coordinates and path2d object for restricting to one  object
+    const x = e.clientX;
+    const y = e.clientY;
     if(is_selected === 0){
-        const x = e.clientX;
-        const y = e.clientY;
+        const arr = JSON.parse(localStorage.getItem("undo_stack"))
         for(let i = state_array.length - 1 ; i >= 0 ; i--){
-            if(ctx2.isPointInPath(state_array[i],x,y) || ctx2.isPointInStroke(state_array[i],x,y)){
-                draw_outline(JSON.parse(localStorage.getItem("undo_stack"))[i]);
-                return;
+            if(hit_test(i,arr[i],x,y) === 1){
+                s_index = i;
+                return 0;
             }
+        }
+        return -1;
     }
+    else {
+            const object = JSON.parse(localStorage.getItem("undo_stack"))[s_index];
+            let ans = 0;
+            ctx2.save();
+            ctx2.resetTransform();
+            ctx2.lineWidth = object.stroke_width;
+            const pt = change_coordinates(x,y,object);
+            if(ctx2.isPointInPath(curr_object,pt.x,pt.y) || ctx2.isPointInStroke(curr_object,pt.x,pt.y)){
+                if((Math.abs(pt.x - object.tl_handle.x) <= 11) && (Math.abs(pt.y - object.tl_handle.y) <= 11)){
+                    ans = 1; 
+                    active_handle = 0;
+                }
+                else if((Math.abs(pt.x - object.bl_handle.x) <= 11) && (Math.abs(pt.y - object.bl_handle.y) <= 11)){
+                    ans = 2;
+                    active_handle = 1;
+                }
+                else if((Math.abs(pt.x - object.br_handle.x) <= 11) && (Math.abs(pt.y - object.br_handle.y) <= 11)){
+                    ans = 3;
+                    active_handle = 2;
+                }
+                else if((Math.abs(pt.x - object.tr_handle.x) <= 11) && (Math.abs(pt.y - object.tr_handle.y) <= 11)){
+                    ans = 4;
+                    active_handle = 3;
+                }
+                else if((Math.abs(pt.x - object.rotate_handle.x) <= 11) && (Math.abs(pt.y - object.rotate_handle.y) <= 11)){
+                    ans = 5;
+                }
+                else{
+                    ans = 0;
+                }
+            }
+            else{
+                ans = -1;
+            }
+            ctx2.restore();
+            return ans;
     }
+}
+function cursor_setter(x){
+    canvas.classList.remove(curr_cursor_class); //call with -1 to remove all curosrs
+    if(x !== -1){
+        canvas.classList.add("grabbing");
+        curr_cursor_class = "grabbing";
+    }
+    else{
+        curr_cursor_class = "dummy_class"
+    }
+}
+function change_main_coords(mouse,handle,object){
+        let arr = [object.tl_handle,object.bl_handle,object.br_handle,object.tr_handle];
+        let scale = {x: 1,y: 1};
+        if(Math.abs(mouse.x - arr[(handle+2)%4].x) <= 35 || Math.abs(arr[(handle+2)%4].y - mouse.y) <= 35 ){
+            return scale;
+        }
+        else{
+            arr[handle].x = mouse.x;
+            arr[handle].y = mouse.y;
+            if(handle % 2 === 0){
+                arr[(handle + 1)%4].x  = mouse.x;
+                arr[(handle + 3)%4].y  = mouse.y;
+            }
+            else{
+                arr[(handle + 1)%4].y = mouse.y;
+                arr[(handle + 3)%4].x = mouse.x;
+            }
+        }
+        scale.x = (Math.abs(arr[0].x - arr[2].x) - 30)/Math.abs(object.startX - object.endX);
+        scale.y = (Math.abs(arr[0].y - arr[1].y) - 30)/Math.abs(object.startY - object.endY);
+        const cd_x = (arr[0].x + arr[2].x)/2;
+        const cd_y = (arr[0].y + arr[1].y)/2;
+        const cosA = Math.cos(object.angle);
+        const sinA = Math.sin(object.angle);
+        object.centre.x = object.centre.x + cd_x*cosA - cd_y*sinA;
+        object.centre.y = object.centre.y + cd_y*cosA + cd_x*sinA;
+        for(let i = 0 ; i < 4 ; i++){
+            arr[i].x -= cd_x;
+            arr[i].y -= cd_y;
+        }
+        object.rotate_handle.x = 0.5*(arr[0].x + arr[2].x);
+        object.rotate_handle.y = arr[0].y - 30;
+        return scale;
+}
+function move(e){
+        let arr = JSON.parse(localStorage.getItem("undo_stack"));
+        let object = arr[s_index];
+        object.centre.x += (e.clientX - startX);
+        object.centre.y += (e.clientY - startY);
+        arr[s_index] = object;
+        localStorage.setItem("undo_stack",JSON.stringify(arr));
+        rerender();
+        draw_box_outline(object);
+        return;
+}
+
+function rotate(e){
+        let arr = JSON.parse(localStorage.getItem("undo_stack"));
+        let object = arr[s_index];
+        object.angle = Math.atan2(e.clientY - object.centre.y,e.clientX - object.centre.x) + 0.5*Math.PI;
+        arr[s_index] = object;
+        localStorage.setItem("undo_stack", JSON.stringify(arr));
+        rerender();
+        draw_box_outline(object);
+        return;
+}
+
+function resize(e){
+        let arr = JSON.parse(localStorage.getItem("undo_stack"));
+        let object = arr[s_index];
+        let pt = change_coordinates(e.clientX,e.clientY,object);
+        const scale = change_main_coords(pt,active_handle,object);
+        const height = object.endY - object.startY;
+        object.startX *= scale.x;
+        object.startY *= scale.y;
+        object.endX *= scale.x;
+        object.endY *= scale.y;
+        if(object.type === "pencil" || object.type === "polygon"){
+            for(let i = 0 ; i < object.pencil_array.length ; i++)
+            {
+                object.pencil_array[i].x *= scale.x;
+                object.pencil_array[i].y *= scale.y;
+            }  
+        }
+        else if(object.type === "text"){
+            object.font_size = (`${parseFloat(object.font_size) + object.endY - object.startY - height}px`);
+        }
+        arr[s_index] = object;
+        state_array[s_index] = convert_to_path2d(object);
+        localStorage.setItem("undo_stack", JSON.stringify(arr));
+        rerender();
+        draw_box_outline(object);
+        return;
 }
 //-----------------------------------------------------------------------------------------
 //event listeners
@@ -657,7 +834,39 @@ canvas.addEventListener("mousedown", (event) => {
         pencil_array = [{x: startX, y: startY}];
     }
     else if(curr_tool === "selection"){
-        
+        if(is_selected === 0){
+            const x = OOB(event);
+            if(x === 0){
+                is_selected = 1;
+                curr_object = return_box_outline(JSON.parse(localStorage.getItem("undo_stack"))[s_index]);
+                draw_box_outline(JSON.parse(localStorage.getItem("undo_stack"))[s_index]);
+            }
+        }
+        else{
+            const x = OOB(event);
+            startX = event.clientX;
+            startY = event.clientY;
+            if(x === -1){
+                is_selected = 0;
+                curr_object = {};
+                s_index = -1;
+                rerender();
+                cursor_setter(-1);
+                mode = 'none';
+            }
+            else if(x === 0){
+                cursor_setter(0);
+                mode = "move";
+            }
+            else if(x === 5){
+                cursor_setter(5);
+                mode = "rotate";
+            }
+            else{
+                cursor_setter(x);
+                mode = "resize";
+            }
+        }
     }
     else if(curr_tool === "text"){
         if(text_box === 0){
@@ -738,7 +947,7 @@ canvas.addEventListener("mousemove", (event) => {
                 }
         }
         else if(curr_tool === "eraser"){
-                erase(event.clientX,event.clientY);
+                erase(event);
         }
         else if(curr_tool === "image"){
                 draw_rectangle(event.clientX,event.clientY);
@@ -746,14 +955,23 @@ canvas.addEventListener("mousemove", (event) => {
         
         }
     if(curr_tool === "selection"){
-                if(move_mode === 0){
-                    select(event);
+        if(is_selected === 1){
+                if(mode === 'none'){
+                    const x = OOB(event);
+                    cursor_setter(x);
                 }
-                else{
-                    move(event.clientX - startX,event.clientY - startY);
-                    startX = event.clientX;
-                    startY = event.clientY;
+                else if(mode === 'rotate' ){
+                    rotate(event);
                 }
+                else if(mode === 'resize'){
+                    resize(event);
+                }
+                else if(mode === 'move'){
+                    move(event);
+                }
+            }
+        startX = event.clientX;
+        startY = event.clientY;
 
     }
 })
@@ -770,7 +988,7 @@ canvas.addEventListener("mouseup", (e) => {
         text_box = 0;
     }
     else if(curr_tool === "selection"){
-        move_mode = 0;
+        mode = 'none';
     }
     else if(curr_tool !== "polygon"){
         createObject(e);
@@ -782,8 +1000,16 @@ canvas.addEventListener("mouseup", (e) => {
 //to prevent glitches when mouse leaves canvas
 canvas.addEventListener("mouseleave", (e) => {
     in_poly_mode = false;
-    move_mode = 0;
-    if(is_drawing === true){
+    if(curr_tool === "selection"){
+        is_selected = 0;
+        curr_object = {};
+        s_index = -1;
+        ctx2.clearRect(0,0,canvas2.width,canvas2.height);
+        rerender();
+        cursor_setter(-1);
+        mode = 'none';
+    }
+    else if(is_drawing === true){
         createObject(e);
     }
     })
@@ -815,7 +1041,6 @@ function undo(e){
         arr2.push(obj);
         localStorage.setItem("undo_stack", JSON.stringify(arr));
         localStorage.setItem("redo_stack", JSON.stringify(arr2));
-        ctx2.clearRect(0,0,canvas2.width,canvas2.height);
         rerender();
     }
 }
