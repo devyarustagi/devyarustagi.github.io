@@ -18,7 +18,7 @@ let prev_undo = false;
 let curr_tool = localStorage.getItem("curr_tool");
 let stroke_style = localStorage.getItem("stroke_style");
 let text_box = 0;
-let mouse_downed_text = 0;
+let pointer_downed_text = 0;
 let state_array = [];
 let move_mode = 0;
 let image_cache = {};
@@ -30,7 +30,7 @@ let mode = 'none';
 let curr_object = {};
 let s_index = -1;
 let active_handle = 'none';
-//mousedown -> draw dotted lines
+//pointerdown -> draw dotted lines
 //-----------------------------------------------------------------------------------------
 //main funcs
 
@@ -60,11 +60,11 @@ function convert_to_path2d(object){
     return path;
 }
 
-//to convert mouse coordinates to local coordinates relative to new axes:
+//to convert pointer coordinates to local coordinates relative to new axes:
 function change_coordinates(X,Y,object){
     let a = X - object.centre.x;
     let b = Y - object.centre.y;
-    const cosA = Math.cos(-object.angle); //rotate mouse coords opposite
+    const cosA = Math.cos(-object.angle); //rotate pointer coords opposite
     const sinA = Math.sin(-object.angle);
     return {x: a*cosA - b*sinA, y: a*sinA + b*cosA};
 }
@@ -203,8 +203,8 @@ function createObject(e){
     let object = {};
     if (curr_tool === "image"){
         let obj = new Shape_obj(e.clientX, e.clientY);
-        const width = Math.max(30,Math.abs(obj.endX - obj.startX));
-        const height = Math.max(30,Math.abs(obj.endY - obj.startY));
+        const width = Math.round(Math.max(30,Math.abs(obj.endX - obj.startX)));
+        const height = Math.round(Math.max(30,Math.abs(obj.endY - obj.startY)));
         obj.startX = Math.min(obj.startX,obj.endX);
         obj.startY = Math.min(obj.startY,obj.endY);
         obj.endX = obj.startX + width;
@@ -342,7 +342,7 @@ function Shape_obj(endX,endY){
         this.endY = endY;
     }
 }
-//function to do the hittesting, x and y are mouse coordinates wr to og coords
+//function to do the hittesting, x and y are pointer coordinates wr to og coords
 function hit_test(index,obj,x,y){
     const p = change_coordinates(x,y,obj);
     ctx2.save();
@@ -431,7 +431,7 @@ function add_element(s,startX,startY,endX,endY){
             input.style.width = `${input.scrollWidth}px`;
         })
         input.focus();
-        input.addEventListener("mousedown",(e)=>{e.stopPropagation()},true);
+        input.addEventListener("pointerdown",(e)=>{e.stopPropagation()},true);
     }
 }
 function erase(e){
@@ -740,22 +740,22 @@ function cursor_setter(x){
         curr_cursor_class = "dummy_class"
     }
 }
-function change_main_coords(mouse,handle,object){
+function change_main_coords(pointer,handle,object){
         let arr = [object.tl_handle,object.bl_handle,object.br_handle,object.tr_handle];
         let scale = {x: 1,y: 1};
-        if(Math.abs(mouse.x - arr[(handle+2)%4].x) <= 35 || Math.abs(arr[(handle+2)%4].y - mouse.y) <= 35 ){
+        if(Math.abs(pointer.x - arr[(handle+2)%4].x) <= 35 || Math.abs(arr[(handle+2)%4].y - pointer.y) <= 35 ){
             return scale;
         }
         else{
-            arr[handle].x = mouse.x;
-            arr[handle].y = mouse.y;
+            arr[handle].x = pointer.x;
+            arr[handle].y = pointer.y;
             if(handle % 2 === 0){
-                arr[(handle + 1)%4].x  = mouse.x;
-                arr[(handle + 3)%4].y  = mouse.y;
+                arr[(handle + 1)%4].x  = pointer.x;
+                arr[(handle + 3)%4].y  = pointer.y;
             }
             else{
-                arr[(handle + 1)%4].y = mouse.y;
-                arr[(handle + 3)%4].x = mouse.x;
+                arr[(handle + 1)%4].y = pointer.y;
+                arr[(handle + 3)%4].x = pointer.x;
             }
         }
         scale.x = (Math.abs(arr[0].x - arr[2].x) - 30)/Math.abs(object.startX - object.endX);
@@ -826,7 +826,7 @@ function resize(e){
 }
 //-----------------------------------------------------------------------------------------
 //event listeners
-canvas.addEventListener("mousedown", (event) => {
+canvas.addEventListener("pointerdown", (event) => {
     is_drawing = true;
     startX = event.clientX;
     startY = event.clientY;
@@ -870,7 +870,7 @@ canvas.addEventListener("mousedown", (event) => {
     }
     else if(curr_tool === "text"){
         if(text_box === 0){
-            mouse_downed_text = 1;
+            pointer_downed_text = 1;
             ctx.lineWidth = 1;
             if(localStorage.getItem('light') === 'true'){
                 ctx.strokeStyle = "black";
@@ -881,7 +881,7 @@ canvas.addEventListener("mousedown", (event) => {
         }
     }
 })
-document.body.addEventListener("mousedown" , (e) => {
+document.body.addEventListener("pointerdown" , (e) => {
     if(curr_tool === "text" && text_box === 1){
         if(document.getElementById("textbox").value !== null){createObject(e);}
         else{document.body.removeChild(document.getElementById("textbox"));
@@ -921,7 +921,7 @@ canvas.addEventListener("dblclick", (e) => {
         createObject(e)
     }
 })
-canvas.addEventListener("mousemove", (event) => {
+canvas.addEventListener("pointermove", (event) => {
     if (is_drawing === true) {
         prev_undo = false;
         localStorage.setItem("redo_stack","[]");
@@ -942,7 +942,7 @@ canvas.addEventListener("mousemove", (event) => {
                 draw_line(event.clientX, event.clientY);
         }
         else if(curr_tool === "text"){
-                if(text_box === 0 && mouse_downed_text === 1){
+                if(text_box === 0 && pointer_downed_text === 1){
                     draw_rectangle(event.clientX, event.clientY);
                 }
         }
@@ -975,14 +975,14 @@ canvas.addEventListener("mousemove", (event) => {
 
     }
 })
-canvas.addEventListener("mouseup", (e) => {
+canvas.addEventListener("pointerup", (e) => {
     if(curr_tool === "text" && text_box === 0){
         ctx.lineWidth = localStorage.getItem("stroke_width");
         ctx.strokeStyle = localStorage.getItem("stroke_color");
         add_element("text",startX,startY,e.clientX,e.clientY);
         is_drawing = false;
         text_box = 1;
-        mouse_downed_text = 0;
+        pointer_downed_text = 0;
     }
     else if(curr_tool === "text" && text_box === 1){
         text_box = 0;
@@ -997,8 +997,8 @@ canvas.addEventListener("mouseup", (e) => {
     
 });
 
-//to prevent glitches when mouse leaves canvas
-canvas.addEventListener("mouseleave", (e) => {
+//to prevent glitches when pointer leaves canvas
+canvas.addEventListener("pointerleave", (e) => {
     in_poly_mode = false;
     if(curr_tool === "selection"){
         is_selected = 0;
