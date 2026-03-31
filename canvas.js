@@ -1000,6 +1000,9 @@ canvas.addEventListener("pointerup", (e) => {
 
 //to prevent glitches when pointer leaves canvas
 canvas.addEventListener("pointerleave", (e) => {
+    if(e.pointerType !== "mouse"){
+        return;
+    }
     in_poly_mode = false;
     if(curr_tool === "selection"){
         is_selected = 0;
