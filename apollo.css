@@ -7,17 +7,19 @@
 }
 
 .light {
-    --bg-color: #D6A99D ;
-    --button-background-color: #FBF3D5;
+    --button-background-color:#DFD0B8;
     --button-highlight-color: black;
-    --button-fill-color: black;
-    --button-active-color: #1b8b98;
+    --button-fill-color: #4a4a4a;
+    --button-active-color:#6d8196 ;
 }
 * {
     box-sizing: border-box;
 }
 body {
         background-color: var(--bg-color) ;
+        padding: 0;
+        margin: 0 0 0 0;
+        overflow: hidden;
     }
 button {
   background: none;
@@ -30,30 +32,43 @@ button {
   align-items: center;
   justify-content: center;
 }
-
+.crosshair {
+    cursor : crosshair;
+}
+.textcursor {
+    cursor : text;
+}
+.grabbing {
+    cursor : grabbing;
+}
+.erasing {  
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='white' stroke='black' stroke-width='1'><circle cx='12' cy='12' r='10'/></svg>") 12 12, pointer;
+}
 #top_buttons {
     background-color: var(--button-background-color);
-    position: absolute;
+    position: fixed;
     display: flex;
     align-items: stretch;
     gap: 1%;
+    margin: 0 0 0 0;
     border:0;
     padding:0;
-    width: clamp(12rem,50%,50rem);
+    width: 50%;
     left: 25%;
-    top: 5%;
+    top: 2vh;
     right : 25%;
     height: 5%;
     border-radius: 8rem;
     border-style:none;   
 }
-
 .tools {
     flex-grow: 1;
+    z-index: 1;
 }
-.tools:active {
+.selected {
     background-color: var(--button-active-color);
 }
+
 .tools:focus {
     outline: none;
     box-shadow: none;
@@ -66,15 +81,12 @@ button {
   transition: stroke 0.3s ;
 }
 
-.tools:focus svg, .tools:hover svg {
+.tools:hover svg {
   stroke: var(--button-highlight-color); 
   stroke-width: 3;
 }
 
-#toggle_theme {
-    position: fixed;
-    top:20px;
-    right:20px;
+.extra_functionality {
     height: 6vh;
     aspect-ratio: 1/1;
     display: flex;
@@ -82,21 +94,84 @@ button {
     padding:0;
     margin:0;
     background-color: var(--button-background-color);
+    z-index:1;
 }
-#toggle_theme:hover, #toggle_theme:focus {
+.extra_functionality:hover {
     outline:none;
     box-shadow: none;
 }
+.extra_functionality:hover svg {
+    stroke: var(--button-highlight-color);
+    stroke-width: 1.5;
+}
+.history {
+    position: fixed;
+    top:2vh;
+    left:2vw;
+    height: 5vh;
+    aspect-ratio: 2.5/1;
+    width: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 1rem;
+    margin: 0;
+    gap:1vw;
+    background-color: var(--button-background-color);
+    z-index:1;
+}
+.history button svg{
+    height:2vw;
+    width:2vw;
+    min-height: 30px;
+    min-width: 30px;
+    fill:none;
+    stroke: var(--button-fill-color);
+}
+.history button:hover {
+    outline:none;
+    box-shadow: none;
+}
+.history button:hover svg {
+    stroke: var(--button-highlight-color);
+    stroke-width: 1.5;
+}
+#theme {
+    position: fixed;
+    right:1vw;
+    top:2vh;
+    height: 5vh;
+    display:flex;
+    gap:1vw;
+    background-color: var(--button-background-color);
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding:0 1vw;
+    margin:0 0;
+    border-radius: 4rem;
+}
+#toggle_theme {
+    height: 100%;
+    aspect-ratio: 1/1;
+    display: flex;
+    border-radius: 50%;
+    padding:0;
+    margin:0;
+    background-color: transparent;
+    z-index:1;
+}
+#canvas_color{
+    height:3.5vh;
+    border:none;
+    cursor:pointer;
+    background-color: transparent;
+}
 
-#toggle_theme:hover svg, #toggle_theme:focus svg {
-    stroke: black;
-    stroke-width: 3;
+#toggle_theme svg:hover{
+    stroke: var(--button-highlight-color)
 }
-#toggle_theme svg {
-        height:80%;
-        width:100%;
-        stroke: var(--button-fill-color)
-}
+
 #toggle_theme svg:last-child {
     display: none;
 }
@@ -106,8 +181,122 @@ button {
 .light #toggle_theme svg:first-child {
     display: none;
 }
-
-#toggle_theme:hover svg, #toggle_theme:focus svg {
-    stroke-color: var(--button-highlight-color);
-    stroke-width: 2.5;
+#hint{
+    display: none;
 }
+#test {
+    position: fixed;
+    background-color: transparent;
+    top:0;
+    left:0;
+}
+#final {
+    position: fixed;
+    background-color: transparent;
+    top:0;
+    left:0;
+}
+
+#test, #final{
+    touch-action: none;
+}
+
+.beautifiers{
+    border:0;
+    margin:0;
+    padding:1rem 1rem 1rem 1rem;
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--button-background-color);
+    border-radius: 1rem;
+    position: fixed;
+    top: 20vh;
+    left:1vw;
+    height:auto;
+    max-height: 70vh;
+    gap: 0.7rem;
+}
+.beautifiers pre{
+    margin:0;
+    font-size:1rem;
+    color: var(--button-fill-color);
+}
+.beautifiers input{
+    padding: 0;
+    margin:0;
+    border : none;
+}
+.beautifiers input:hover{
+    cursor: pointer;
+}
+.beautifiers div{
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap:1rem;
+}
+.beautifiers div button{
+   width:3rem;
+}
+.beautifiers div button:hover svg{
+   stroke: var(--button-highlight-color);
+   stroke-width: 2.70;
+}
+.beautifiers div button svg{
+   stroke: var(--button-fill-color);
+   height: 80%;
+   width:100%;
+   fill:none;
+}
+output{
+    color: var(--button-fill-color);
+}
+#options{
+    display : none;
+}
+
+@media (max-width: 620px) {
+  #options{
+    display: flex;
+    position: fixed;
+    top:auto;
+    background-color: var(--button-background-color);
+    font-size: 1rem;
+    color: var(--button-fill-color);
+    bottom: 2vh;
+    height:6vh;
+    left:40vw;
+    right:40vw;
+    width:20vw;
+  }
+  #options :hover{
+    color: var(--button-highlight-color);
+  }
+  #top_buttons{
+    width:90vw;
+    left:5vw;
+    height:6vh;
+    right:5vw;
+    padding : 0 1vw;
+  }
+  #theme{
+    top:auto;
+    height:6vh;
+    bottom:2vh;
+  }
+  .history{
+    top:auto;
+    height:6vh;
+    bottom:2vh;
+  }
+  .beautifiers{
+    left:15vw;
+    right: 15vw;
+    height:50vh;
+    width:70vw;
+  }
+
+}
+

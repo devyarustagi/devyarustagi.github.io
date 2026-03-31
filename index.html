@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apollo</title>
+    <link rel="stylesheet" href="apollo.css">
+    <link rel="icon" href="apollo_icon.png" type="image/png">
+    <script src="toggle_theme.js" defer></script>
+    <script src="canvas.js" defer></script>
+
+  </head>
+  <body>
+    <canvas id="final">Uhm sorry!....An error occured while loading the canvas.</canvas>
+    <canvas id="test">Uhm sorry!....An error occured while loading the canvas.</canvas>
+    <menu id="top_buttons">
+    <!--Top panel of basic tools' buttons-->
+    <button id="draw_rectangle" type="button" class="tools"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"  stroke-width="1" stroke-linecap="butt" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/></svg></button>
+    <button id="draw_circle" type="button" class="tools"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1" stroke-linecap="butt" stroke-linejoin="round" ><circle cx="12" cy="12" r="10"/></svg></button>
+    <button id="line" type="button" class="tools"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1" stroke-linecap="butt" stroke-linejoin="round" ><path d="M5 12h14"/></svg></button>
+    <button id="polygon" type="button" class = "tools"><svg fill="#000000" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" stroke="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="M 14 4 C 12.894531 4 12 4.894531 12 6 C 12 6.019531 12 6.042969 12 6.0625 L 6.9375 9.25 C 6.65625 9.101563 6.339844 9 6 9 C 4.894531 9 4 9.894531 4 11 C 4 11.738281 4.402344 12.371094 5 12.71875 L 5 24.28125 C 4.402344 24.628906 4 25.261719 4 26 C 4 27.105469 4.894531 28 6 28 C 6.738281 28 7.371094 27.597656 7.71875 27 L 20.28125 27 C 20.628906 27.597656 21.261719 28 22 28 C 23.105469 28 24 27.105469 24 26 C 24 25.601563 23.890625 25.21875 23.6875 24.90625 L 26.125 20 C 27.171875 19.933594 28 19.0625 28 18 C 28 17.023438 27.300781 16.207031 26.375 16.03125 L 24.46875 10.3125 C 24.785156 9.957031 25 9.511719 25 9 C 25 7.894531 24.105469 7 23 7 C 22.488281 7 22.042969 7.214844 21.6875 7.53125 L 15.96875 5.59375 C 15.78125 4.683594 14.964844 4 14 4 Z M 15.3125 7.5 L 21.03125 9.375 C 21.183594 10.179688 21.820313 10.816406 22.625 10.96875 L 24.53125 16.65625 C 24.207031 17.011719 24 17.480469 24 18 C 24 18.414063 24.128906 18.804688 24.34375 19.125 L 21.875 24 C 21.1875 24.042969 20.609375 24.4375 20.28125 25 L 7.71875 25 C 7.542969 24.699219 7.300781 24.457031 7 24.28125 L 7 12.71875 C 7.597656 12.371094 8 11.738281 8 11 C 8 10.980469 8 10.957031 8 10.9375 L 13.0625 7.75 C 13.34375 7.898438 13.660156 8 14 8 C 14.503906 8 14.960938 7.808594 15.3125 7.5 Z"></path></g></svg></button>
+    <button id="pencil" type="button" class="tools"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1" stroke-linecap="butt" stroke-linejoin="round" ><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg></button>
+    <button id="eraser" type="button" class="tools"><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 24 24" stroke-width="1" stroke-linecap="butt" stroke-linejoin="round"><path d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21"/><path d="m5.082 11.09 8.828 8.828"/></svg></button>
+    <button id="text" type="button" class="tools"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"  stroke-width="1" stroke-linecap="butt" stroke-linejoin="round" ><path d="M17 22h-1a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4h1"/><path d="M7 22h1a4 4 0 0 0 4-4v-1"/><path d="M7 2h1a4 4 0 0 1 4 4v1"/></svg></button>
+    <button id="selection" type="button" class="tools"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1" stroke-linecap="butt" stroke-linejoin="round" ><path d="M12.586 12.586 19 19"/><path d="M3.688 3.037a.497.497 0 0 0-.651.651l6.5 15.999a.501.501 0 0 0 .947-.062l1.569-6.083a2 2 0 0 1 1.448-1.479l6.124-1.579a.5.5 0 0 0 .063-.947z"/></svg></button>
+    <button id="image" type="button" class="tools"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></button>  
+    </menu>
+    <div id="theme">
+    <span><input type = "color" id = "canvas_color"></span>
+    <button id="toggle_theme" type="button">
+      <svg xmlns="http://www.w3.org/2000/svg" id= "moon" viewBox="0 0 24 24" fill="white" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" id="sun" viewBox="0 0 24 24" fill="orange" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg> 
+    </button>
+  </div>
+
+    <div id="undo_redo" class="history">
+    <button id="undo"  type="button">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+    </button>
+    <button id="redo" type="button">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/></svg>
+    </button>
+    </div>
+    <menu id="stroke_manipulation" class="beautifiers">
+      <pre>Stroke color:</pre>
+      <input type="color" id="stroke_color">
+      <!--implement default color and local storage-->
+      <pre>Stroke style:</pre>
+      <div id="stroke_style">
+        <button id="straight-line" type="button" class="stroke_button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1" stroke-linecap="butt" stroke-linejoin="round" ><path d="M5 12h14"/></svg></button>
+        <button id="dotted-line" type="button" class="stroke_button"><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+        <button id = "dashed-line" type="button" class = "stroke_button"><svg viewBox="0 0 17 17" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M0 8h4v1h-4v-1zM6.5 9h4v-1h-4v1zM13 8v1h4v-1h-4z" fill="#000000"></path> </g></svg></button>
+      </div>
+      <pre>Stroke width:</pre>
+      <div><input type="range" id="stroke_width" min="1" max="20" step="1"><span> </span><output id = "stroke_width_value" min_width="20px"></output></div>
+      <pre>Opacity:</pre>
+      <div><input type="range" id="opacity" min="0" max="100" step="1"><span> </span><output min-width = "20px" id = "opacity_value"></output></div>
+      <pre id="hint">Double-click to stop!</pre>
+    </menu>
+    <menu id="font_manipulation" class="beautifiers">
+      <pre>Text color:</pre>
+      <input type="color" id="font_color">
+      <pre>Font family:</pre>
+      <select id="font_family">
+        <option>Arial</option>
+        <option>Consolas</option>
+        <option>Helvetica</option>
+        <option>Verdana</option>
+        <option>Garamond</option>
+        <option>Tahoma</option>
+        <option>Impact</option>
+      </select>
+      <pre>Font size:</pre>
+      <div><input type="range" id="font_size" min="8" max="96" step="1"><span> </span><output min-width = "20px" id = "font_size_value"></output></div>
+    </menu>
+    <button type = "button" id="options">Options</button>
+    
+    
+  </body>
+</html>
